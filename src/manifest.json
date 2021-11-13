@@ -1,0 +1,29 @@
+{
+    "name": "BF2042 Portal Extensions",
+    "description": "Adds additional functionality to the BF2042 Portal Rules Editor.",
+    "version": "1.0.0",
+    "manifest_version": 3,
+    "icons": {
+        "128": "icon-128.png"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "https://portal.battlefield.com/*"
+            ],
+            "js": [
+                "startup.js"
+            ]
+        }
+    ],
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "extensions.js"
+            ],
+            "matches": [
+                "<all_urls>"
+            ]
+        }
+    ]
+}
