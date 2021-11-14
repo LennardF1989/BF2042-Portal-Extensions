@@ -1,4 +1,4 @@
-const BF1942PortalExtensions = (function () {
+const BF2042PortalExtensions = (function () {
     const mouseCoords = {
         x: 0,
         y: 0
@@ -78,6 +78,81 @@ const BF1942PortalExtensions = (function () {
         };
     })();
 
+    const toggleComments = (function () {
+        function displayText(scope) {
+            return scope.block.getCommentIcon() 
+                ? "Remove Comment" 
+                : "Add Comment";
+        }
+
+        function precondition() {
+            return "enabled";
+        }
+
+        async function callback(scope) {
+            scope.block.getCommentIcon() ? scope.block.setCommentText(null) : scope.block.setCommentText("");
+        }
+
+        return {
+            id: "toggleComments",
+            displayText: displayText,
+            scopeType: _Blockly.ContextMenuRegistry.ScopeType.BLOCK,
+            weight: 100,
+            preconditionFn: precondition,
+            callback: callback
+        };
+    })();
+
+    const toggleInputs = (function () {
+        function displayText(scope) {
+            return scope.block.getInputsInline() 
+                ? "Show Inputs Vertically" 
+                : "Show Inputs Horizontally";
+        }
+
+        function precondition() {
+            return "enabled";
+        }
+
+        async function callback(scope) {
+            scope.block.setInputsInline(!scope.block.getInputsInline());
+        }
+
+        return {
+            id: "toggleInputs",
+            displayText: displayText,
+            scopeType: _Blockly.ContextMenuRegistry.ScopeType.BLOCK,
+            weight: 100,
+            preconditionFn: precondition,
+            callback: callback
+        };
+    })();
+
+    const toggleCollapse = (function () {
+        function displayText(scope) {
+            return scope.block.isCollapsed() 
+                ? "Expand Block" 
+                : "Collapse Block";
+        }
+
+        function precondition() {
+            return "enabled";
+        }
+
+        async function callback(scope) {
+            scope.block.setCollapsed(!scope.block.isCollapsed());
+        }
+
+        return {
+            id: "toggleCollapse",
+            displayText: displayText,
+            scopeType: _Blockly.ContextMenuRegistry.ScopeType.BLOCK,
+            weight: 100,
+            preconditionFn: precondition,
+            callback: callback
+        };
+    })();
+
     const openDocumentation = (function () {
         const documentationUrl = "https://bf2042.lennardf1989.com";
 
@@ -134,6 +209,9 @@ const BF1942PortalExtensions = (function () {
     }
 
     function init() {
+        _Blockly.ContextMenuRegistry.registry.register(toggleComments);
+        _Blockly.ContextMenuRegistry.registry.register(toggleInputs);
+        _Blockly.ContextMenuRegistry.registry.register(toggleCollapse);
         _Blockly.ContextMenuRegistry.registry.register(copyToClipboard);
         _Blockly.ContextMenuRegistry.registry.register(openDocumentation);
         _Blockly.ContextMenuRegistry.registry.register(pasteFromClipboard);
