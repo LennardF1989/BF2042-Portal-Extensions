@@ -9,11 +9,16 @@ Functionality available:
 - Show Inputs Vertically/Horizontally
 - Expand/Collapse Block
 
-## Usage
-The extension is currently being submitted to the Chrome Web Store! In the mean time, you can download and load the extension yourself into Chrome*:
+## Installation
+
+### Chrome Web Store
+Get it here: https://chrome.google.com/webstore/detail/bf2042-portal-extensions/ojegdnmadhmgfijhiibianlhbkepdhlj
+
+### Manually
+You can download and load the extension yourself into Chrome*:
 
 1. Download this repository and extract it to somewhere on your filesystem.
-2. Open up Chrome, go into Extensions and enabled Developer Mode.
+2. Open up Chrome, go into Extensions and enable Developer Mode.
 3. Click "Load extracted extension" and browse to the "src"-folder at the location from step 1.
 
 Done! The extension is now active, simply refresh the BF2042 Portal to see the effects in the Rules Editor.
