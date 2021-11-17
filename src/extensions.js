@@ -80,8 +80,8 @@ const BF2042PortalExtensions = (function () {
 
     const toggleComments = (function () {
         function displayText(scope) {
-            return scope.block.getCommentIcon() 
-                ? "Remove Comment" 
+            return scope.block.getCommentIcon()
+                ? "Remove Comment"
                 : "Add Comment";
         }
 
@@ -105,8 +105,8 @@ const BF2042PortalExtensions = (function () {
 
     const toggleInputs = (function () {
         function displayText(scope) {
-            return scope.block.getInputsInline() 
-                ? "Show Inputs Vertically" 
+            return scope.block.getInputsInline()
+                ? "Show Inputs Vertically"
                 : "Show Inputs Horizontally";
         }
 
@@ -130,8 +130,8 @@ const BF2042PortalExtensions = (function () {
 
     const toggleCollapse = (function () {
         function displayText(scope) {
-            return scope.block.isCollapsed() 
-                ? "Expand Block" 
+            return scope.block.isCollapsed()
+                ? "Expand Block"
                 : "Collapse Block";
         }
 
@@ -146,6 +146,43 @@ const BF2042PortalExtensions = (function () {
         return {
             id: "toggleCollapse",
             displayText: displayText,
+            scopeType: _Blockly.ContextMenuRegistry.ScopeType.BLOCK,
+            weight: 100,
+            preconditionFn: precondition,
+            callback: callback
+        };
+    })();
+
+    const deleteModBlock = (function () {
+        function precondition(scope) {
+            if(scope.block.type === "modBlock" && getBlocksByType("modBlock").length > 1) {
+                return "enabled";
+            }
+
+            return "hidden";
+        }
+
+        async function callback(scope) {
+            scope.block.dispose(false, false);
+        }
+
+        //Based on: https://groups.google.com/g/blockly/c/4mfShJDY6-k
+        function getBlocksByType(type) {
+            const blocks = [];
+            const workspace = _Blockly.getMainWorkspace();
+
+            for (const blockID in workspace.blockDB_) {
+                if (workspace.blockDB_[blockID].type == type) {
+                    blocks.push(workspace.blockDB_[blockID]);
+                }
+            }
+
+            return blocks;
+        }
+
+        return {
+            id: "deleteModBlock",
+            displayText: "Delete Mod Block",
             scopeType: _Blockly.ContextMenuRegistry.ScopeType.BLOCK,
             weight: 100,
             preconditionFn: precondition,
@@ -175,7 +212,7 @@ const BF2042PortalExtensions = (function () {
     })();
 
     //Based on: https://groups.google.com/g/blockly/c/LXnMujtEzJY/m/FKQjI4OwAwAJ
-    document.addEventListener("mousedown", function (event) {       
+    document.addEventListener("mousedown", function (event) {
         const mainWorkspace = _Blockly.getMainWorkspace();
 
         // Gets the x and y position of the cursor relative to the workspace's parent svg element.
@@ -208,7 +245,23 @@ const BF2042PortalExtensions = (function () {
         console.log(`[ERROR] ${message}`, error);
     }
 
+    function cssFixes() {
+        const styleElement = document.createElement("style");
+        styleElement.setAttribute("type", "text/css");
+
+        styleElement.innerHTML = `
+            .blocklyMenu {
+                overflow-y: hidden !important;
+            }
+        `;
+
+        document.head.appendChild(styleElement);
+    }
+
     function init() {
+        cssFixes();
+        
+        _Blockly.ContextMenuRegistry.registry.register(deleteModBlock);
         _Blockly.ContextMenuRegistry.registry.register(toggleComments);
         _Blockly.ContextMenuRegistry.registry.register(toggleInputs);
         _Blockly.ContextMenuRegistry.registry.register(toggleCollapse);
