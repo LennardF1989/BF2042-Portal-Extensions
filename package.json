@@ -1,0 +1,8 @@
+{
+    "name": "bf2042-portal-extensions",
+    "private": false,
+    "scripts": {
+        "build:chromium": "node build/chromium.js",
+        "build:firefox": "node build/firefox.js"
+    }
+}

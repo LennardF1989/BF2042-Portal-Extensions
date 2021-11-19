@@ -39,6 +39,7 @@ const BF2042PortalExtensions = (function () {
 
     const pasteFromClipboard = (function () {
         const errorMessage = "Failed to paste from clipboard!";
+        let pasteFromClipboardFn = pasteFromClipboard;
 
         //NOTE: Unfortunately precondition cannot be async, so we cannot check if the clipboard contains valid XML beforehand.
         function precondition() {
@@ -47,9 +48,9 @@ const BF2042PortalExtensions = (function () {
 
         async function callback() {
             try {
-                const xmlText = await navigator.clipboard.readText();
+                const xmlText = await pasteFromClipboardFn();
 
-                if (!xmlText.startsWith("<block")) {
+                if (!xmlText || !xmlText.startsWith("<block")) {
                     return;
                 }
 
@@ -67,6 +68,43 @@ const BF2042PortalExtensions = (function () {
                 alert(errorMessage);
             }
         }
+
+        async function pasteFromClipboard() {
+            return await navigator.clipboard.readText();
+        }
+
+        async function pasteFromClipboardFirefox() {
+            return new Promise((resolve, reject) => {
+                pasteFromClipboardFirefoxCallback = (clipboard) => {
+                    if (clipboard) {
+                        resolve(clipboard);
+                    }
+                    else {
+                        reject();
+                    }
+                };
+
+                const event = new Event("bf2042-portal-extension-paste");
+                document.dispatchEvent(event);
+            });
+        }
+
+        let pasteFromClipboardFirefoxCallback;
+
+        function init() {
+            //NOTE: If readText is not available, we are going to assume this is Firefox.
+            if (!navigator.clipboard.readText !== undefined) {
+                return;
+            }
+
+            pasteFromClipboardFn = pasteFromClipboardFirefox;
+
+            window.addEventListener("bf2042-portal-extension-paste", async function (message) {
+                pasteFromClipboardFirefoxCallback(message.detail);
+            });
+        }
+
+        init();
 
         return {
             id: "pasteFromClipboard",
@@ -155,7 +193,7 @@ const BF2042PortalExtensions = (function () {
 
     const deleteModBlock = (function () {
         function precondition(scope) {
-            if(scope.block.type === "modBlock" && getBlocksByType("modBlock").length > 1) {
+            if (scope.block.type === "modBlock" && getBlocksByType("modBlock").length > 1) {
                 return "enabled";
             }
 
@@ -215,6 +253,10 @@ const BF2042PortalExtensions = (function () {
     document.addEventListener("mousedown", function (event) {
         const mainWorkspace = _Blockly.getMainWorkspace();
 
+        if (!mainWorkspace) {
+            return;
+        }
+
         // Gets the x and y position of the cursor relative to the workspace's parent svg element.
         const mouseXY = _Blockly.utils.mouseToSvg(
             event,
@@ -260,7 +302,7 @@ const BF2042PortalExtensions = (function () {
 
     function init() {
         cssFixes();
-        
+
         _Blockly.ContextMenuRegistry.registry.register(deleteModBlock);
         _Blockly.ContextMenuRegistry.registry.register(toggleComments);
         _Blockly.ContextMenuRegistry.registry.register(toggleInputs);
@@ -271,4 +313,6 @@ const BF2042PortalExtensions = (function () {
     }
 
     init();
+
+    return {};
 })();

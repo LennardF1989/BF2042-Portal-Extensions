@@ -1,7 +1,7 @@
 {
     "name": "BF2042 Portal Extensions",
     "description": "Adds additional functionality to the BF2042 Portal Rules Editor.",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "manifest_version": 3,
     "icons": {
         "128": "icon-128.png"
