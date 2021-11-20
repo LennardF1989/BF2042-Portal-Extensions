@@ -487,7 +487,7 @@ const BF2042PortalExtensions = (function () {
                 else {
                     categories.push({
                         name: entry.name,
-                        contents: entry.contents
+                        contents: [].concat(entry.contents)
                     });
                 }
             }
@@ -713,6 +713,8 @@ const BF2042PortalExtensions = (function () {
 
             tempBlock.dispose();
         }
+
+        workspace.clearUndo();
     }
 
     function init() {
