@@ -9,15 +9,21 @@ Functionality available:
 - Show Inputs Vertically/Horizontally
 - Expand/Collapse Block
 - Expand/Collapse All Blocks
-- Importing/Exporting blocks from/to JSON
-- Distraction-Free mode
-- Add Blocks from the contextmenu
-- Export blocks to SVG[1] and PNG
-- Multiple selection by holding down SHIFT:
+- Add Blocks from the Context-menu
+- Toggle Distraction-Free Mode
+- Jump to Subroutine
+- Import/Export Blocks from/to JSON
+- Export Blocks to SVG[1] and PNG
+- Multiple selection by holding down SHIFT[2][3]:
   - Drag selection as one
   - Export selection to SVG[1] and PNG
+  - Copy/Paste selection to/from clipboard
 
 [1] The SVG still contains all other blocks, it is only focused on the selected portion! If you only intended to share a selection, copy/paste it to a clean workspace first.
+
+[2] CTRL is used by Blockly to detach a block when dragging, hence SHIFT was used.
+
+[3] Most actions from the context-menu do not support multiple selections yet and will only be performed on the last selected block.
 
 ## Installation
 
