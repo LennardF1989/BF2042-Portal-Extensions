@@ -1,4 +1,4 @@
-if (navigator.userAgent.search("Firefox")) {
+if (navigator.clipboard.readText !== undefined) {
     document.addEventListener("bf2042-portal-extension-paste", async function () {
         const temp = document.createElement("input");
         document.body.appendChild(temp);

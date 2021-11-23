@@ -31,6 +31,8 @@ const BF2042PortalExtensions = (function () {
 
     let workspaceInitialized = false;
 
+    let selectedBlocks = [];
+
     const copyToClipboard = (function () {
         const errorMessage = "Failed to copy to clipboard!";
 
@@ -40,10 +42,16 @@ const BF2042PortalExtensions = (function () {
 
         async function callback(scope) {
             try {
-                const xmlDom = _Blockly.Xml.blockToDom(scope.block);
-                _Blockly.Xml.deleteNext(xmlDom);
+                let xmlText = "";
 
-                const xmlText = _Blockly.Xml.domToPrettyText(xmlDom);
+                if (selectedBlocks.length > 0) {
+                    for (let i = 0; i < selectedBlocks.length; i++) {
+                        xmlText += blockToXml(selectedBlocks[i]);
+                    }
+                }
+                else {
+                    xmlText += blockToXml(scope.block);
+                }
 
                 await navigator.clipboard.writeText(xmlText);
             }
@@ -52,6 +60,15 @@ const BF2042PortalExtensions = (function () {
 
                 alert(errorMessage);
             }
+        }
+
+        function blockToXml(block) {
+            const xmlDom = _Blockly.Xml.blockToDomWithXY(block, true);
+            _Blockly.Xml.deleteNext(xmlDom);
+
+            const xmlText = _Blockly.Xml.domToText(xmlDom).replace("xmlns=\"https://developers.google.com/blockly/xml\"", "");
+
+            return xmlText;
         }
 
         return {
@@ -84,10 +101,49 @@ const BF2042PortalExtensions = (function () {
                 const domText = `<xml xmlns="https://developers.google.com/blockly/xml">${xmlText}</xml>`;
 
                 const xmlDom = _Blockly.Xml.textToDom(domText);
-                const blockId = _Blockly.Xml.domToWorkspace(xmlDom, _Blockly.getMainWorkspace())[0];
 
-                const block = _Blockly.getMainWorkspace().getBlockById(blockId);
-                block.moveTo(mouseCoords);
+                //NOTE: Determine a bounding box
+                let minX;
+                let minY;
+
+                for (let i = 0; i < xmlDom.childNodes.length; i++) {
+                    const block = xmlDom.childNodes[i];
+
+                    const x = block.getAttribute("x");
+                    const y = block.getAttribute("y");
+
+                    if (!minX || x < minX) {
+                        minX = x;
+                    }
+
+                    if (!minY || y < minY) {
+                        minY = y;
+                    }
+                }
+
+                //NOTE: Transform blocks to the minimum coords, then move them to their target position.
+                for (let i = 0; i < xmlDom.childNodes.length; i++) {
+                    const block = xmlDom.childNodes[i];
+
+                    const x = block.getAttribute("x");
+                    const y = block.getAttribute("y");
+
+                    if (x == minX) {
+                        block.setAttribute("x", mouseCoords.x);
+                    }
+                    else {
+                        block.setAttribute("x", (x - minX) + mouseCoords.x);
+                    }
+
+                    if (y == minY) {
+                        block.setAttribute("y", mouseCoords.y);
+                    }
+                    else {
+                        block.setAttribute("y", (y - minY) + mouseCoords.y);
+                    }
+                }
+
+                _Blockly.Xml.domToWorkspace(xmlDom, _Blockly.getMainWorkspace())[0];
             }
             catch (e) {
                 logError(errorMessage, e);
@@ -120,7 +176,7 @@ const BF2042PortalExtensions = (function () {
 
         function init() {
             //NOTE: If readText is not available, we are going to assume this is Firefox.
-            if (!navigator.clipboard.readText !== undefined) {
+            if (navigator.clipboard.readText !== undefined) {
                 return;
             }
 
@@ -324,11 +380,11 @@ const BF2042PortalExtensions = (function () {
 
     const jumpToSubRoutine = (function () {
         function precondition(scope) {
-            if (scope.type === "subroutineInstanceBlock") {
-                return "hidden";
+            if (scope.block.type === "subroutineInstanceBlock") {
+                return "enabled";
             }
 
-            return "enabled";
+            return "hidden";
         }
 
         async function callback(scope) {
@@ -373,25 +429,210 @@ const BF2042PortalExtensions = (function () {
         };
     })();
 
-    const exportBlocksToJSON = (function () {
+    const exportBlocks = (function () {
         function precondition() {
             return "enabled";
         }
 
         async function callback() {
+            showContextMenuWithBack([{
+                text: "JSON",
+                enabled: true,
+                callback: exportToJson
+            },
+            {
+                text: "SVG",
+                enabled: true,
+                callback: exportToSvg
+            },
+            {
+                text: "PNG (Download)",
+                enabled: true,
+                callback: exportToPngAsFile
+            },
+            {
+                text: "PNG (Clipboard)",
+                enabled: true,
+                callback: exportToPngOnClipboard
+            }]);
+        }
+
+        async function exportToJson() {
             const saveData = save();
 
             if (!saveData) {
-                alert("Failed to export workspace!");
+                alert("Failed to export JSON!");
 
                 return;
             }
 
             const result = JSON.stringify(saveData, null, 4);
+            const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(result)}`;
 
+            downloadFile(dataUri, "workspace.json");
+        }
+
+        async function exportToSvg() {
+            const svgData = blocksToSvg(selectedBlocks);
+
+            downloadFile(svgData.svg, "screenshot.svg");
+        }
+
+        async function exportToPngAsFile() {
+            try {
+                const svgData = blocksToSvg(selectedBlocks);
+                const pngData = await svgToData(svgData, 1, "png");
+
+                downloadFile(pngData, "screenshot.png");
+            }
+            catch (e) {
+                logError("Failed to export PNG (Download)", e);
+
+                alert("Failed to export PNG (Download)!");
+            }
+        }
+
+        async function exportToPngOnClipboard() {
+            try {
+                const svgData = blocksToSvg(selectedBlocks);
+                const blobData = await svgToData(svgData, 1, "blob");
+
+                await navigator.clipboard.write([new ClipboardItem({ [blobData.type]: blobData })]);
+
+                alert("Done!");
+            }
+            catch (e) {
+                logError("Failed to export PNG (Clipboard)", e);
+
+                alert("Failed to export PNG (Clipboard)!");
+            }
+        }
+
+        //Based on: https://github.com/google/blockly/blob/master/tests/playgrounds/screenshot.js
+        function blocksToSvg(blocks) {
+            const workspace = _Blockly.getMainWorkspace();
+            let x, y, width, height;
+
+            if (blocks.length > 0) {
+                //Determine bounding box of the selection
+                let minX, minY, maxX, maxY;
+
+                for (let i = 0; i < blocks.length; i++) {
+                    const block = blocks[i];
+                    const xy = block.getRelativeToSurfaceXY();
+
+                    if (!minX || xy.x < minX) {
+                        minX = xy.x;
+                    }
+
+                    if (!minY || xy.y < minY) {
+                        minY = xy.y;
+                    }
+
+                    if (!maxX || xy.x + block.width > maxX) {
+                        maxX = xy.x + block.width;
+                    }
+
+                    if (!maxY || xy.y + block.height > maxY) {
+                        maxY = xy.y + block.height;
+                    }
+                }
+
+                x = minX;
+                y = minY;
+                width = maxX - minX;
+                height = maxY - minY;
+            }
+            else {
+                const boundingBox = workspace.getBlocksBoundingBox();
+                x = boundingBox.x || boundingBox.left;
+                y = boundingBox.y || boundingBox.top;
+                width = boundingBox.width || boundingBox.right - x;
+                height = boundingBox.height || boundingBox.bottom - y;
+            }
+
+            const blockCanvas = workspace.getCanvas();
+            const clone = blockCanvas.cloneNode(true);
+            clone.removeAttribute("transform");
+
+            const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+            svg.appendChild(clone);
+            svg.setAttribute("viewBox", `${x} ${y} ${width} ${height}`);
+            svg.setAttribute("class", `blocklySvg ${workspace.options.renderer || "geras"}-renderer ${workspace.getTheme ? workspace.getTheme().name + "-theme" : ""}`);
+            svg.setAttribute("width", width);
+            svg.setAttribute("height", height);
+            svg.setAttribute("style", "background-color: transparent");
+
+            const css = [].slice.call(document.head.querySelectorAll("style"))
+                .filter(function (el) {
+                    return /\.blocklySvg/.test(el.innerText) || (el.id.indexOf("blockly-") === 0);
+                })
+                .map(function (el) {
+                    return el.innerText;
+                })
+                .join("");
+
+            const style = document.createElement("style");
+            style.innerHTML = css;
+            svg.insertBefore(style, svg.firstChild);
+
+            const svgAsXML = (new XMLSerializer).serializeToString(svg).replace(/&nbsp/g, "&#160");
+
+            const data = `data:image/svg+xml,${encodeURIComponent(svgAsXML)}`;
+
+            return {
+                width: width,
+                height: height,
+                svg: data
+            }
+        }
+
+        async function svgToData(svgData, scale, dataType) {
+            const promise = new Promise(function (resolve, reject) {
+                const canvas = document.createElement("canvas");
+                const context = canvas.getContext("2d");
+                const img = new Image();
+
+                canvas.width = svgData.width * scale;
+                canvas.height = svgData.height * scale;
+
+                if (canvas.width > 16384 || canvas.height > 16384) {
+                    reject("The resulting image would be too large to handle for your browser. Please select less blocks or reduce the scale.");
+                }
+
+                img.onload = function () {
+                    context.drawImage(img, 0, 0, svgData.width, svgData.height, 0, 0, canvas.width, canvas.height);
+
+                    try {
+                        if (dataType === "png") {
+                            const dataUri = canvas.toDataURL("image/png");
+
+                            resolve(dataUri);
+                        }
+                        else if (dataType === "blob") {
+                            canvas.toBlob((function (blob) {
+                                resolve(blob);
+                            }));
+                        }
+                        else {
+                            throw "Unknown type";
+                        }
+                    } catch (e) {
+                        reject(`Failed to convert SVG: ${e}`);
+                    }
+                };
+
+                img.src = svgData.svg;
+            });
+
+            return promise;
+        }
+
+        function downloadFile(fileData, fileName) {
             const linkElement = document.createElement("a");
-            linkElement.setAttribute("href", `data:application/json;charset=utf-8,${encodeURIComponent(result)}`);
-            linkElement.setAttribute("download", "workspace.json");
+            linkElement.setAttribute("href", fileData);
+            linkElement.setAttribute("download", fileName);
             linkElement.style.display = "none";
 
             document.body.appendChild(linkElement);
@@ -400,8 +641,8 @@ const BF2042PortalExtensions = (function () {
         }
 
         return {
-            id: "exportBlocksToJSON",
-            displayText: "Export Blocks to JSON",
+            id: "exportBlocks",
+            displayText: "Export Blocks >",
             scopeType: _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE,
             weight: 100,
             preconditionFn: precondition,
@@ -562,7 +803,7 @@ const BF2042PortalExtensions = (function () {
     })();
 
     //Based on: https://groups.google.com/g/blockly/c/LXnMujtEzJY/m/FKQjI4OwAwAJ
-    document.addEventListener("mousedown", function (event) {
+    function updateMouseCoords(event) {
         const mainWorkspace = _Blockly.getMainWorkspace();
 
         if (!mainWorkspace) {
@@ -593,14 +834,14 @@ const BF2042PortalExtensions = (function () {
 
         mouseCoords.x = mouseXY.x;
         mouseCoords.y = mouseXY.y;
-    });
+    }
 
     function save() {
         const workspace = _Blockly.getMainWorkspace();
 
         try {
             return {
-                mainWorkspace: _Blockly.Xml.domToText(_Blockly.Xml.workspaceToDom(workspace, false)),
+                mainWorkspace: _Blockly.Xml.domToText(_Blockly.Xml.workspaceToDom(workspace, true)),
                 variables: _Blockly.Xml.domToText(_Blockly.Xml.variablesToDom(workspace.getAllVariables()))
             };
         } catch (e) {
@@ -661,6 +902,10 @@ const BF2042PortalExtensions = (function () {
             .distraction-free > div.app {
                 padding-top: 0;
             }
+
+            .distraction-free .editor-container {
+                grid-template-columns: 0 !important;
+            }
         `;
 
         document.head.appendChild(styleElement);
@@ -676,6 +921,8 @@ const BF2042PortalExtensions = (function () {
                 rtl
             };
 
+            updateMouseCoords(lastContextMenu.e);
+
             return originalShow(e, options, rtl);
         }
     }
@@ -688,6 +935,7 @@ const BF2042PortalExtensions = (function () {
 
             if (!workspaceInitialized && Object.keys(_Blockly.Blocks).length > 0) {
                 initializeBlocks();
+                initializeEvents();
             }
         }
     }
@@ -717,6 +965,77 @@ const BF2042PortalExtensions = (function () {
         workspace.clearUndo();
     }
 
+    function initializeEvents() {
+        let shiftKey;
+
+        let deltaX;
+        let deltaY;
+        let activeBlock;
+
+        document.addEventListener("keydown", function (e) {
+            shiftKey = e.shiftKey;
+        });
+
+        document.addEventListener("keyup", function (e) {
+            shiftKey = e.shiftKey;
+        });
+
+        _Blockly.getMainWorkspace().addChangeListener(function (e) {
+            if (e.type === _Blockly.Events.CLICK) {
+                const workspace = _Blockly.getMainWorkspace();
+
+                if (shiftKey) {
+                    if (!e.blockId) {
+                        return;
+                    }
+
+                    const block = workspace.blockDB_[e.blockId];
+
+                    const selectedIndex = selectedBlocks.indexOf(block);
+
+                    if (selectedIndex < 0) {
+                        selectedBlocks.push(block);
+
+                        block.setHighlighted(true);
+                    }
+                    else {
+                        selectedBlocks.splice(selectedIndex, 1);
+
+                        block.setHighlighted(false);
+                    }
+                }
+                else {
+                    selectedBlocks = [];
+
+                    for (const blockID in workspace.blockDB_) {
+                        workspace.blockDB_[blockID].setHighlighted(false);
+                    }
+                }
+            }
+            else if (e.type === _Blockly.Events.BLOCK_DRAG && !e.isStart) {
+                activeBlock = e.blockId;
+            }
+            else if (e.type === _Blockly.Events.MOVE && e.newCoordinate && e.oldCoordinate && activeBlock) {
+                const ignoreBlock = activeBlock;
+
+                activeBlock = undefined;
+
+                deltaX = e.newCoordinate.x - e.oldCoordinate.x;
+                deltaY = e.newCoordinate.y - e.oldCoordinate.y;
+
+                for (let i = 0; i < selectedBlocks.length; i++) {
+                    const block = selectedBlocks[i];
+
+                    if (block.id === ignoreBlock) {
+                        continue;
+                    }
+
+                    block.moveBy(deltaX, deltaY);
+                }
+            }
+        });
+    }
+
     function init() {
         cssFixes();
         hookContextMenu();
@@ -732,10 +1051,11 @@ const BF2042PortalExtensions = (function () {
         _Blockly.ContextMenuRegistry.registry.register(expandAllBlocks);
         _Blockly.ContextMenuRegistry.registry.register(openDocumentation);
         _Blockly.ContextMenuRegistry.registry.register(toggleDistractionFreeMode);
-        _Blockly.ContextMenuRegistry.registry.register(exportBlocksToJSON);
+        _Blockly.ContextMenuRegistry.registry.register(exportBlocks);
         _Blockly.ContextMenuRegistry.registry.register(importBlocksFromJSON);
         _Blockly.ContextMenuRegistry.registry.register(copyToClipboard);
         _Blockly.ContextMenuRegistry.registry.register(pasteFromClipboard);
+
     }
 
     init();
