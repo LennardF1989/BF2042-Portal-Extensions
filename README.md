@@ -8,6 +8,16 @@ Functionality available:
 - Add/Remove Comment
 - Show Inputs Vertically/Horizontally
 - Expand/Collapse Block
+- Expand/Collapse All Blocks
+- Importing/Exporting blocks from/to JSON
+- Distraction-Free mode
+- Add Blocks from the contextmenu
+- Export blocks to SVG[1] and PNG
+- Multiple selection by holding down SHIFT:
+  - Drag selection as one
+  - Export selection to SVG[1] and PNG
+
+[1] The SVG still contains all other blocks, it is only focused on the selected portion! If you only intended to share a selection, copy/paste it to a clean workspace first.
 
 ## Installation
 
