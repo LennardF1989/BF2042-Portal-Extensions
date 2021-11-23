@@ -31,7 +31,7 @@ Functionality available:
 Get it here: https://chrome.google.com/webstore/detail/bf2042-portal-extensions/ojegdnmadhmgfijhiibianlhbkepdhlj
 
 ### Mozilla Addons
-Get it here: Pending approval!
+Get it here: https://addons.mozilla.org/firefox/addon/bf2042-portal-extensions/
 
 ### Manually
 You can download and load the extension yourself into Chrome*:
