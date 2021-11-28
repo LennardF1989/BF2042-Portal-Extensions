@@ -1,5 +1,6 @@
 const EVENT_EXTENSIONS_PASTE = "bf2042-portal-extensions-paste";
 const EVENT_PLUGINS_INIT = "bf2042-portal-plugins-init";
+const IS_FIREFOX = typeof InstallTrigger !== 'undefined';
 
 let config;
 
@@ -13,7 +14,7 @@ function injectScript(relativeUrl) {
 function dispatchWebEvent(eventType, payload) {
     //NOTE: If we are running on Firefox, we have to use cloneInto for the payload.
     const event = new CustomEvent(eventType, {
-        detail: cloneInto !== undefined 
+        detail: IS_FIREFOX
             ? cloneInto(payload, window) 
             : payload
     });
