@@ -13,7 +13,7 @@ function injectScript(relativeUrl) {
 function dispatchWebEvent(eventType, payload) {
     //NOTE: If we are running on Firefox, we have to use cloneInto for the payload.
     const event = new CustomEvent(eventType, {
-        detail: cloneInto !== undefined 
+        detail: typeof cloneInto !== 'undefined'
             ? cloneInto(payload, window) 
             : payload
     });
