@@ -11,6 +11,7 @@ Functionality available:
 - Expand/Collapse All Blocks
 - Add Blocks from the Context-menu
 - Toggle Distraction-Free Mode
+- Toggle Toolbox
 - Jump to Subroutine
 - Import/Export Blocks from/to JSON
 - Export Blocks to SVG[1] and PNG
@@ -18,6 +19,7 @@ Functionality available:
   - Drag selection as one
   - Export selection to SVG[1] and PNG
   - Copy/Paste selection to/from clipboard
+- Plugin system
 
 [1] The SVG still contains all other blocks, it is only focused on the selected portion! If you only intended to share a selection, copy/paste it to a clean workspace first.
 
@@ -43,6 +45,9 @@ You can download and load the extension yourself into Chrome*:
 Done! The extension is now active, simply refresh the BF2042 Portal to see the effects in the Rules Editor.
 
 * Edge should also work, as well as Mozilla. The procedures might be slightly different there.
+
+## Plugins
+It's possible to load plugins with this extension. If you would like to develop your own plugins, please read [this](/plugins/README.md).
 
 ## Donations
 If you appreciate what I'm doing, consider buying me a cup of coffee!

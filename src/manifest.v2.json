@@ -1,9 +1,18 @@
 {
     "manifest_version": 2,
+    "browser_action": {
+        "default_icon": "icon-128.png"
+    },
+    "background": {
+        "scripts": [
+            "extension/background.js"
+        ]
+    },
     "web_accessible_resources": [
-        "extensions.js"
+        "web/app.js"
     ],
     "permissions": [
+        "storage",
         "clipboardRead"
     ]
 }

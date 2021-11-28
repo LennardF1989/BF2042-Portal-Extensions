@@ -1,4 +1,6 @@
-const BF2042PortalExtensions = (function () {
+const BF2042Portal = {};
+
+BF2042Portal.Extensions = (function() {
     const mouseCoords = {
         x: 0,
         y: 0
@@ -56,7 +58,7 @@ const BF2042PortalExtensions = (function () {
                 await navigator.clipboard.writeText(xmlText);
             }
             catch (e) {
-                logError(errorMessage, e);
+                BF2042Portal.Shared.logError(errorMessage, e);
 
                 alert(errorMessage);
             }
@@ -146,7 +148,7 @@ const BF2042PortalExtensions = (function () {
                 _Blockly.Xml.domToWorkspace(xmlDom, _Blockly.getMainWorkspace())[0];
             }
             catch (e) {
-                logError(errorMessage, e);
+                BF2042Portal.Shared.logError(errorMessage, e);
 
                 alert(errorMessage);
             }
@@ -167,7 +169,7 @@ const BF2042PortalExtensions = (function () {
                     }
                 };
 
-                const event = new Event("bf2042-portal-extension-paste");
+                const event = new Event("bf2042-portal-extensions-paste");
                 document.dispatchEvent(event);
             });
         }
@@ -182,7 +184,7 @@ const BF2042PortalExtensions = (function () {
 
             pasteFromClipboardFn = pasteFromClipboardFirefox;
 
-            window.addEventListener("bf2042-portal-extension-paste", async function (message) {
+            window.addEventListener("bf2042-portal-extensions-paste", async function (message) {
                 pasteFromClipboardFirefoxCallback(message.detail);
             });
         }
@@ -417,11 +419,34 @@ const BF2042PortalExtensions = (function () {
 
         async function callback() {
             document.querySelector("app-root").classList.toggle("distraction-free");
+
+            _Blockly.getMainWorkspace().resize();
         }
 
         return {
             id: "toggleDistractionFreeMode",
             displayText: "Toggle Distraction-Free Mode",
+            scopeType: _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE,
+            weight: 100,
+            preconditionFn: precondition,
+            callback: callback
+        };
+    })();
+
+    const toggleToolbox = (function () {
+        function precondition() {
+            return "enabled";
+        }
+
+        async function callback() {
+            document.querySelector("app-root").classList.toggle("hide-toolbox");
+
+            _Blockly.getMainWorkspace().resize();
+        }
+
+        return {
+            id: "toggleToolbox",
+            displayText: "Toggle Toolbox",
             scopeType: _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE,
             weight: 100,
             preconditionFn: precondition,
@@ -486,7 +511,7 @@ const BF2042PortalExtensions = (function () {
                 downloadFile(pngData, "screenshot.png");
             }
             catch (e) {
-                logError("Failed to export PNG (Download)", e);
+                BF2042Portal.Shared.logError("Failed to export PNG (Download)", e);
 
                 alert("Failed to export PNG (Download)!");
             }
@@ -502,7 +527,7 @@ const BF2042PortalExtensions = (function () {
                 alert("Done!");
             }
             catch (e) {
-                logError("Failed to export PNG (Clipboard)", e);
+                BF2042Portal.Shared.logError("Failed to export PNG (Clipboard)", e);
 
                 alert("Failed to export PNG (Clipboard)!");
             }
@@ -845,7 +870,7 @@ const BF2042PortalExtensions = (function () {
                 variables: _Blockly.Xml.domToText(_Blockly.Xml.variablesToDom(workspace.getAllVariables()))
             };
         } catch (e) {
-            logError("Failed to save workspace!", e);
+            BF2042Portal.Shared.logError("Failed to save workspace!", e);
         }
 
         return undefined;
@@ -862,7 +887,7 @@ const BF2042PortalExtensions = (function () {
 
             return true;
         } catch (e) {
-            logError("Failed to load workspace!", e);
+            BF2042Portal.Shared.logError("Failed to load workspace!", e);
         }
 
         return false;
@@ -882,9 +907,6 @@ const BF2042PortalExtensions = (function () {
         }).concat(options), lastContextMenu.rtl);
     }
 
-    function logError(message, error) {
-        console.log(`[ERROR] ${message}`, error);
-    }
 
     function cssFixes() {
         const styleElement = document.createElement("style");
@@ -905,6 +927,10 @@ const BF2042PortalExtensions = (function () {
 
             .distraction-free .editor-container {
                 grid-template-columns: 0 !important;
+            }
+
+            .hide-toolbox .blocklyToolboxDiv {
+                display: none !important;
             }
         `;
 
@@ -936,6 +962,7 @@ const BF2042PortalExtensions = (function () {
             if (!workspaceInitialized && Object.keys(_Blockly.Blocks).length > 0) {
                 initializeBlocks();
                 initializeEvents();
+                initializePlugins();
             }
         }
     }
@@ -1036,6 +1063,10 @@ const BF2042PortalExtensions = (function () {
         });
     }
 
+    function initializePlugins() {
+        BF2042Portal.Plugins.init();
+    }
+
     function init() {
         cssFixes();
         hookContextMenu();
@@ -1051,14 +1082,99 @@ const BF2042PortalExtensions = (function () {
         _Blockly.ContextMenuRegistry.registry.register(expandAllBlocks);
         _Blockly.ContextMenuRegistry.registry.register(openDocumentation);
         _Blockly.ContextMenuRegistry.registry.register(toggleDistractionFreeMode);
+        _Blockly.ContextMenuRegistry.registry.register(toggleToolbox);
         _Blockly.ContextMenuRegistry.registry.register(exportBlocks);
         _Blockly.ContextMenuRegistry.registry.register(importBlocksFromJSON);
         _Blockly.ContextMenuRegistry.registry.register(copyToClipboard);
         _Blockly.ContextMenuRegistry.registry.register(pasteFromClipboard);
-
     }
 
-    init();
-
-    return {};
+    return {
+        init: init
+    }
 })();
+
+BF2042Portal.Plugins = (function() {
+    //NOTE: Represents a Plugin-class
+    function Plugin(baseUrl, manifest) {
+        this.baseUrl = baseUrl;
+        this.manifest = manifest;
+
+        this.getUrl = function(relativeUrl) {
+            return `${baseUrl}/${relativeUrl}`;
+        }
+    }
+
+    const plugins = {};
+
+    function init() {
+        window.addEventListener("bf2042-portal-plugins-init", async function (message) {
+            const initData = message.detail;
+
+            loadPlugins(initData);
+        });
+
+        const event = new Event("bf2042-portal-plugins-init");
+        document.dispatchEvent(event);
+    }
+
+    async function loadPlugins(initData) {
+        for(let i = 0; i < initData.plugins.length; i++) {
+            const pluginData = initData.plugins[i];
+
+            loadPlugin(pluginData);
+        }
+    }
+
+    async function loadPlugin(pluginData) {
+        try {
+            const plugin = new Plugin(pluginData.baseUrl, pluginData.manifest);
+            plugins[pluginData.manifest.id] = plugin;
+
+            if(pluginData.liveReload) {
+                const scriptElement = document.createElement("script");
+                scriptElement.setAttribute("type", "text/javascript");
+                scriptElement.setAttribute("src", plugin.getUrl(pluginData.manifest.main));
+    
+                document.body.appendChild(scriptElement);
+            }
+            else if(pluginData.mainContent) {
+                const scriptElement = document.createElement("script");
+                scriptElement.setAttribute("type", "text/javascript");
+                scriptElement.innerHTML = `${pluginData.mainContent}\n//# sourceURL=${pluginData.manifest.id}.js`;
+    
+                document.body.appendChild(scriptElement);
+            }
+        }
+        catch(e) {
+            BF2042Portal.Shared.logError(`Failed to load plugin '${pluginData.manifest.name}''`, e);
+        }
+    }
+
+    function getPlugin(id) {
+        const plugin = plugins[id];
+
+        if(!plugin) {
+            throw `Plugin with id ${id} not found!`;
+        }
+
+        return plugin;
+    }
+    
+    return {
+        init: init,
+        getPlugin: getPlugin
+    };
+})();
+
+BF2042Portal.Shared = (function() {
+    function logError(message, error) {
+        console.log(`[ERROR] ${message}`, error);
+    }
+
+    return {
+        logError: logError
+    }
+})();
+
+BF2042Portal.Extensions.init();

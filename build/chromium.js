@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const base = require("./base"); 
 const { exec } = require("child_process");
 
 const outputPath = "temp/chromium";
@@ -13,16 +14,20 @@ fs.mkdirSync(outputPath, {
 });
 
 const files = [
-    "src/icon-128.png",
-    "src/extensions.js",
-    "src/startup.js",
-    "src/manifest.json",
+    ...base.files,
+    "manifest.json",
 ]
 
 files.forEach(file => {
     const filePath = path.parse(file);
 
-    fs.copyFileSync(file, `${outputPath}/${filePath.base}`);
+    if(filePath.dir != "") {
+        fs.mkdirSync(`${outputPath}/${filePath.dir}`, { 
+            recursive: true
+        });
+    }
+
+    fs.copyFileSync(`src/${file}`, `${outputPath}/${file}`);
 });
 
 exec(`cd ${outputPath} && tar.exe --format zip -cf ../chromium.zip *`);

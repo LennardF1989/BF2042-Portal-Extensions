@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const base = require("./base"); 
 const { exec } = require("child_process");
 
 const outputPath = "temp/firefox";
@@ -13,15 +14,20 @@ fs.mkdirSync(outputPath, {
 });
 
 const files = [
-    "src/icon-128.png",
-    "src/extensions.js",
-    "src/startup.js",
+    ...base.files,
+    "extension/background.js",
 ]
 
 files.forEach(file => {
     const filePath = path.parse(file);
 
-    fs.copyFileSync(file, `${outputPath}/${filePath.base}`);
+    if(filePath.dir != "") {
+        fs.mkdirSync(`${outputPath}/${filePath.dir}`, { 
+            recursive: true
+        });
+    }
+
+    fs.copyFileSync(`src/${file}`, `${outputPath}/${file}`);
 });
 
 const manifest = require("../src/manifest.json");
