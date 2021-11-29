@@ -32,6 +32,9 @@ Functionality available:
 ### Chrome Web Store
 Get it here: https://chrome.google.com/webstore/detail/bf2042-portal-extensions/ojegdnmadhmgfijhiibianlhbkepdhlj
 
+### Edge Addons
+Get it here: https://microsoftedge.microsoft.com/addons/detail/bf2042-portal-extensions/abkgoonnpmbeekieegggnicdheolmnkf
+
 ### Mozilla Addons
 Get it here: https://addons.mozilla.org/firefox/addon/bf2042-portal-extensions/
 
