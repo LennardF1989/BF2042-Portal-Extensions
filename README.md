@@ -50,7 +50,13 @@ Done! The extension is now active, simply refresh the BF2042 Portal to see the e
 * Edge should also work, as well as Mozilla. The procedures might be slightly different there.
 
 ## Plugins
-It's possible to load plugins with this extension. If you would like to develop your own plugins, please read [this](/plugins/README.md).
+It's possible to load plugins with this extension. 
+
+For information on how to use plugins, please read [this](/wiki/Plugins).
+
+A list of curated plugins can be found [here](/plugins/plugin-index.md).
+
+If you would like to develop your own plugins, please read [this](/plugins/README.md).
 
 ## Donations
 If you appreciate what I'm doing, consider buying me a cup of coffee!
