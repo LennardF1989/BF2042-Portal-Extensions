@@ -1,7 +1,7 @@
 {
     "name": "BF2042 Portal Extensions",
     "description": "Adds additional functionality to the BF2042 Portal Rules Editor.",
-    "version": "1.0.7",
+    "version": "1.0.8",
     "author": "Lennard Fonteijn",
     "homepage_url": "https://github.com/LennardF1989/BF2042-Portal-Extensions",
     "manifest_version": 3,
