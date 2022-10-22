@@ -3,6 +3,7 @@
     "private": false,
     "scripts": {
         "build:chromium": "node build/chromium.js",
-        "build:firefox": "node build/firefox.js"
+        "build:firefox": "node build/firefox.js",
+        "build": "node build/firefox.js && node build/chromium.js"
     }
 }

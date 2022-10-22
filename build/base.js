@@ -1,3 +1,5 @@
+const path = require("path");
+const fs = require("fs");
 const files = [
     "icon-128.png",
     "extension/app.js",
@@ -13,6 +15,30 @@ const files = [
     "web/app.js"
 ];
 
+
+function prepFiles(file, outputPath, manifestTransformFileName) {
+    const finalFiles = [...files, ...file]
+
+    fs.mkdirSync(outputPath, {
+        recursive: true
+    });
+    finalFiles.forEach(file => {
+        const filePath = path.parse(file);
+
+        if(filePath.dir !== "") {
+            fs.mkdirSync(`${outputPath}/${filePath.dir}`, {
+                recursive: true
+            });
+        }
+
+        fs.copyFileSync(`src/${file}`, `${outputPath}/${file}`);
+    });
+    const manifest = require("../src/manifest.base.json");
+    const manifestTransform = require(`../src/${manifestTransformFileName}`);
+    const combinedManifest = {...manifest, ...manifestTransform };
+    fs.writeFileSync(`${outputPath}/manifest.json`, JSON.stringify(combinedManifest, null, "    "));
+}
+
 module.exports = {
-    files: files
+    prepFiles: prepFiles
 };

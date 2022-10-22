@@ -13,6 +13,7 @@
     ],
     "permissions": [
         "storage",
-        "clipboardRead"
+        "clipboardRead",
+        "http://localhost/*"
     ]
 }
