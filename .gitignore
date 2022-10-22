@@ -1,2 +1,4 @@
 /res
 /temp
+.idea
+node_modules

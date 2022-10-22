@@ -3,6 +3,11 @@
     "private": false,
     "scripts": {
         "build:chromium": "node build/chromium.js",
-        "build:firefox": "node build/firefox.js"
+        "build:firefox": "node build/firefox.js",
+        "build:all": "node build/build.js",
+        "build:all:nopack": "node build/build.js --nopack"
+    },
+    "dependencies": {
+        "archiver": "5.3.1"
     }
 }
