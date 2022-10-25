@@ -9,7 +9,6 @@ BF2042Portal.Extensions = (function() {
     const contextMenuStack = [];
     let lastContextMenu = undefined;
 
-    const blockLookup = [];
     const blockLookupOverride = [{
         type: "ruleBlock",
         name: "Rule"
@@ -775,17 +774,15 @@ BF2042Portal.Extensions = (function() {
                             if (entry2.kind !== "BLOCK") {
                                 continue;
                             }
-
                             let name = entry2.displayName;
 
                             if (!name) {
                                 const blockName = blockLookupOverride.find(e => e.type == entry2.type);
                                 name = blockName ? blockName.name : undefined;
                             }
-
-                            if (!name) {
-                                const blockName = blockLookup.find(e => e.type == entry2.type);
-                                name = blockName ? blockName.name : entry2.type;
+                            if(!name){
+                                console.error(`Name not available for ${entry2.type}`)
+                                name = entry2.type // fallback value
                             }
 
                             subOptions.push({
@@ -960,37 +957,12 @@ BF2042Portal.Extensions = (function() {
             originalWorkspaceSvg.apply(this, arguments);
 
             if (!workspaceInitialized && Object.keys(_Blockly.Blocks).length > 0) {
-                initializeBlocks();
                 initializeEvents();
                 initializePlugins();
             }
         }
     }
 
-    function initializeBlocks() {
-        workspaceInitialized = true;
-
-        const workspace = _Blockly.getMainWorkspace();
-
-        for (const block in _Blockly.Blocks) {
-            const tempBlock = workspace.newBlock(block, undefined);
-            tempBlock.init();
-
-            try {
-                blockLookup.push({
-                    type: block,
-                    name: tempBlock.inputList[0].fieldRow[0].value_
-                });
-            }
-            catch {
-                //Do nothing
-            }
-
-            tempBlock.dispose();
-        }
-
-        workspace.clearUndo();
-    }
 
     function initializeEvents() {
         let shiftKey;
