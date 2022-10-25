@@ -1,7 +1,6 @@
 const base = require("./base");
-const { exec } = require("child_process");
 
-const outputPath = "temp/chromium";
+const outputPath = "chromium";
 
 /*if (fs.existsSync(outputPath)){
     fs.rmdirSync(outputPath);
@@ -15,5 +14,4 @@ base.prepFiles(
     outputPath,
     "manifest.json"
 )
-
-exec(`cd ${outputPath} && tar.exe --format zip -cf ../chromium.zip *`);
+base.packExtension(outputPath)

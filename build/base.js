@@ -1,5 +1,7 @@
 const path = require("path");
 const fs = require("fs");
+const archiver = require('archiver');
+
 const files = [
     "icon-128.png",
     "extension/app.js",
@@ -18,6 +20,7 @@ const files = [
 
 function prepFiles(file, outputPath, manifestTransformFileName) {
     const finalFiles = [...files, ...file]
+    outputPath = 'temp/' + outputPath
 
     fs.mkdirSync(outputPath, {
         recursive: true
@@ -38,7 +41,23 @@ function prepFiles(file, outputPath, manifestTransformFileName) {
     const combinedManifest = {...manifest, ...manifestTransform };
     fs.writeFileSync(`${outputPath}/manifest.json`, JSON.stringify(combinedManifest, null, "    "));
 }
+function packExtension(outputPath){
+    if(!process.argv.slice(2).find(argv => argv === "--pack")){
+        return;
+    }
+    const output = fs.createWriteStream(`temp/${outputPath}_extension.zip`),
+        archive = archiver('zip')
+    output.on('close', function() {
+      console.log(archive.pointer() + ' total bytes');
+      console.log('archiver has been finalized and the output file descriptor has closed.');
+    });
+    archive.pipe(output);
+    archive.directory(`temp/${outputPath}`, false);
+    archive.finalize();
+}
+
 
 module.exports = {
-    prepFiles: prepFiles
+    prepFiles: prepFiles,
+    packExtension: packExtension
 };

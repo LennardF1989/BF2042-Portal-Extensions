@@ -1,7 +1,6 @@
 const base = require("./base");
-const { exec } = require("child_process");
 
-const outputPath = "temp/firefox";
+const outputPath = "firefox";
 
 /*if (fs.existsSync(outputPath)){
     fs.rmdirSync(outputPath);
@@ -12,4 +11,4 @@ const files = [
 ]
 
 base.prepFiles(files, outputPath, "manifest.v2.json")
-exec(`cd  ${outputPath} && tar.exe --format zip -cf ../firefox.xpi *`);
+base.packExtension(outputPath)
