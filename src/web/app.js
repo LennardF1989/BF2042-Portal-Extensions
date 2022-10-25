@@ -782,7 +782,19 @@ BF2042Portal.Extensions = (function() {
                             }
                             if(!name){
                                 console.error(`Name not available for ${entry2.type}`)
-                                name = entry2.type // fallback value
+                                // get name from block object on demand
+                                const workspace = _Blockly.getMainWorkspace(),
+                                    tempBlock = workspace.newBlock(entry2.type, undefined)
+                                tempBlock.init();
+                                try {
+                                    name = tempBlock.inputList[0].fieldRow[0].value_
+                                } catch  {
+                                    name = entry2.type
+                                }
+
+                                tempBlock.dispose();
+                                workspace.clearUndo();
+
                             }
 
                             subOptions.push({
