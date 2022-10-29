@@ -66,7 +66,8 @@ Currently, the feature-set is very limited, but you can do the following:
 - `const plugin = BF2042Portal.Plugins.getPlugin("your-plugin-id")` to get reference to your runtime SDK.
 - The reference will then contain the contents of your `manifest.json` and the `baseUrl` from where your plugin is loaded.
 - A convenience function `getUrl("relativePath")` has been added to get an absolute URL for a file relative to the `baseUrl`.
-
+- You can override the `initializeWorkspace` function on the plugin reference to get a signal whenever the Blockly Workspace is reloaded. Treat this as your "constructor" if you need access to the active workspace.
+ 
 There is no functionality yet to stream-line saving/loading data for your plugin. In order to be as prepared as possible for future chances:
 - Use the `localStorage` in context of the BF2042 Portal website
 - Store all your data in a single key as a JSON-string. For example: `localStorage.setItem("your-plugin-id", JSON.stringify(yourPluginData));`

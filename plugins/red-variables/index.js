@@ -1,8 +1,14 @@
-const theme = _Blockly.getMainWorkspace().getTheme();
+(function () {
+    const plugin = BF2042Portal.Plugins.getPlugin("red-variables");
 
-const variableStyle = theme.blockStyles["variable-block-style"];
-variableStyle.colourPrimary = "#b53e3e";
-variableStyle.colourSecondary = "#782424";
-variableStyle.colourTertiary = "#782424";
+    plugin.initializeWorkspace = function () {
+        const theme = _Blockly.getMainWorkspace().getTheme();
 
-_Blockly.getMainWorkspace().setTheme(theme);
+        const variableStyle = theme.blockStyles["variable-block-style"];
+        variableStyle.colourPrimary = "#b53e3e";
+        variableStyle.colourSecondary = "#782424";
+        variableStyle.colourTertiary = "#782424";
+
+        _Blockly.getMainWorkspace().setTheme(theme);
+    };
+})();
