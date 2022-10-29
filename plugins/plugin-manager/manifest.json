@@ -1,0 +1,8 @@
+{
+    "id": "plugin-manager",
+    "name": "Plugin Manager",
+    "version": "1.0.0",
+    "description": "Adds an external plugin manager to bypass restrictions of browser marketplaces.",
+    "author": "LennardF1989",
+    "main": "index.js"
+}

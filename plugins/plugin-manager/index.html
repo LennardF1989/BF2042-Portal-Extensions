@@ -1,0 +1,56 @@
+<html>
+    <head>
+        <title>BF2042 Portal Extensions</title>
+
+        <link rel="icon" type="image/png" href="/icon-128.png">
+        
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.1/css/bootstrap.min.css" integrity="sha512-T584yQ/tdRR5QwOpfvDfVQUidzfgc2339Lc8uBDtcp/wYu80d7jwBgAxbyMh0a9YM9F8N3tdErpFI8iaGx6x5g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.7.1/font/bootstrap-icons.min.css" integrity="sha512-WYaDo1TDjuW+MPatvDarHSfuhFAflHxD87U9RoB4/CSFh24/jzUHfirvuvwGmJq0U7S9ohBXy4Tfmk2UKkp2gA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+        <link rel="stylesheet" href="css/default.css" />
+    </head>
+    <body ng-app="bf2042" ng-controller="MainController as vm">
+        <nav>
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="logo d-flex">
+                        <div class="mr-2 align-self-center">
+                            <img src="https://media.contentapi.ea.com/content/dam/battlefield/battlefield-2042/common/bf-2042-teal-nav-logo.svg">
+                        </div>
+                        <div class="mr-2">
+                            <div class="title">Portal Extensions - Plugin Manager <span class="version">{{vm.version}}</span></div>
+                            <div class="author">
+                                <span>by Lennard Fonteijn</span>
+    
+                                <a href="https://github.com/LennardF1989" target="_blank" rel="noopener">
+                                    <span class="bi bi-github"></span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="items d-flex align-items-center justify-content-end" style="flex-grow: 1;">
+                        <div ng-if="false">
+                            <a href="#!/plugins">Plugins</a>
+                        </div>
+                        <div ng-if="false">
+                            <a href="#!/snippets">Snippets</a>
+                        </div>
+                        <div>
+                            <a href="#" ng-click="vm.close()">
+                                <span class="bi bi-backspace-reverse mr-2"></span>Back to Rules Editor
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <div ng-view></div>
+
+        <script src="vendors/jquery-3.2.1.slim.min.js"></script>
+        <script src="vendors/bootstrap.min.js"></script>
+        <script src="vendors/angular.min.js"></script>
+        <script src="vendors/angular-route.min.js"></script>
+        <script src="js/app.js"></script>
+    </body>
+</html>

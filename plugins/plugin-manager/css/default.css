@@ -1,0 +1,30 @@
+nav {
+    background-color: black;
+    padding: 10px;
+}
+
+nav .logo {
+    color: #ffffff;
+    font-size: 1em;
+}
+
+nav .logo .title {
+    font-weight: bold;
+}
+
+nav .logo .author {
+    font-size: 0.75em;
+    font-weight: bold;
+    text-align: right;
+}
+
+nav .logo .author a {
+    color: #ffffff;
+}
+
+nav .items a {
+    color: white;
+    font-weight: bold;
+    font-size: 1.25em;
+    margin-left: 10px;
+}
