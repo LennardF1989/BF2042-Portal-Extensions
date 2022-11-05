@@ -55,7 +55,10 @@ function packExtension(outputPath, outputFileName) {
         return;
     }
 
-    const output = fs.createWriteStream(`temp/${outputFileName}`);
+    const output = fs.createWriteStream(`temp/${outputFileName}`, {
+        flags: "w"
+    });
+
     const archive = archiver("zip");
 
     output.on("close", function () {

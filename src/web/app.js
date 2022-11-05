@@ -1,6 +1,11 @@
 const BF2042Portal = {};
 
 BF2042Portal.Extensions = (function () {
+    const blocklyConfig = {
+        menus: {},
+        items: {}
+    };
+
     const mouseCoords = {
         x: 0,
         y: 0
@@ -14,10 +19,11 @@ BF2042Portal.Extensions = (function () {
     const blockCategories = [];
 
     const selectedBlocks = [];
-        
+
     let shiftKey = false;
 
-    const copyToClipboard = (function () {
+    //Blockly functions - Items
+    function copyToClipboard() {
         const errorMessage = "Failed to copy to clipboard!";
 
         function precondition() {
@@ -26,10 +32,7 @@ BF2042Portal.Extensions = (function () {
 
         async function callback(scope) {
             try {
-                const blocks = (selectedBlocks.length > 0)
-                    ? selectedBlocks
-                    : [scope.block];
-
+                const blocks = getSelectedBlocks(scope);
                 const xmlText = saveXml(blocks);
 
                 if (!xmlText) {
@@ -38,7 +41,7 @@ BF2042Portal.Extensions = (function () {
                     return;
                 }
 
-                await navigator.clipboard.writeText(xmlText);
+                await BF2042Portal.Shared.copyTextToClipboard(xmlText);
             }
             catch (e) {
                 BF2042Portal.Shared.logError(errorMessage, e);
@@ -54,12 +57,11 @@ BF2042Portal.Extensions = (function () {
             weight: 100,
             preconditionFn: precondition,
             callback: callback
-        };
-    })();
+        }
+    }
 
-    const pasteFromClipboard = (function () {
+    function pasteFromClipboard() {
         const errorMessage = "Failed to paste from clipboard!";
-        let pasteFromClipboardFn = pasteFromClipboard;
 
         //NOTE: Unfortunately precondition cannot be async, so we cannot check if the clipboard contains valid XML beforehand.
         function precondition() {
@@ -68,7 +70,7 @@ BF2042Portal.Extensions = (function () {
 
         async function callback() {
             try {
-                let xmlText = await pasteFromClipboardFn();
+                let xmlText = await BF2042Portal.Shared.pasteTextFromClipboard();
 
                 if (!loadXml(xmlText)) {
                     alert(errorMessage);
@@ -81,43 +83,6 @@ BF2042Portal.Extensions = (function () {
             }
         }
 
-        async function pasteFromClipboard() {
-            return await navigator.clipboard.readText();
-        }
-
-        async function pasteFromClipboardFirefox() {
-            return new Promise((resolve, reject) => {
-                pasteFromClipboardFirefoxCallback = (clipboard) => {
-                    if (clipboard) {
-                        resolve(clipboard);
-                    }
-                    else {
-                        reject();
-                    }
-                };
-
-                const event = new Event("bf2042-portal-extensions-paste");
-                document.dispatchEvent(event);
-            });
-        }
-
-        let pasteFromClipboardFirefoxCallback;
-
-        function init() {
-            //NOTE: If readText is not available, we are going to assume this is Firefox.
-            if (navigator.clipboard.readText !== undefined) {
-                return;
-            }
-
-            pasteFromClipboardFn = pasteFromClipboardFirefox;
-
-            window.addEventListener("bf2042-portal-extensions-paste", async function (message) {
-                pasteFromClipboardFirefoxCallback(message.detail);
-            });
-        }
-
-        init();
-
         return {
             id: "pasteFromClipboard",
             displayText: "Paste from Clipboard",
@@ -125,10 +90,10 @@ BF2042Portal.Extensions = (function () {
             weight: 100,
             preconditionFn: precondition,
             callback: callback
-        };
-    })();
+        }
+    }
 
-    const toggleComments = (function () {
+    function toggleComments() {
         function displayText(scope) {
             return scope.block.getCommentIcon()
                 ? "Remove Comment"
@@ -150,10 +115,10 @@ BF2042Portal.Extensions = (function () {
             weight: 100,
             preconditionFn: precondition,
             callback: callback
-        };
-    })();
+        }
+    }
 
-    const toggleInputs = (function () {
+    function toggleInputs() {
         function displayText(scope) {
             return scope.block.getInputsInline()
                 ? "Show Inputs Vertically"
@@ -175,10 +140,10 @@ BF2042Portal.Extensions = (function () {
             weight: 100,
             preconditionFn: precondition,
             callback: callback
-        };
-    })();
+        }
+    }
 
-    const toggleCollapse = (function () {
+    function toggleCollapse() {
         function displayText(scope) {
             return scope.block.isCollapsed()
                 ? "Expand Block"
@@ -200,10 +165,10 @@ BF2042Portal.Extensions = (function () {
             weight: 100,
             preconditionFn: precondition,
             callback: callback
-        };
-    })();
+        }
+    }
 
-    const collapseAllBlocks = (function () {
+    function collapseAllBlocks() {
         function precondition() {
             return "enabled";
         }
@@ -223,10 +188,10 @@ BF2042Portal.Extensions = (function () {
             weight: 100,
             preconditionFn: precondition,
             callback: callback
-        };
-    })();
+        }
+    }
 
-    const expandAllBlocks = (function () {
+    function expandAllBlocks() {
         function precondition() {
             return "enabled";
         }
@@ -246,10 +211,10 @@ BF2042Portal.Extensions = (function () {
             weight: 100,
             preconditionFn: precondition,
             callback: callback
-        };
-    })();
+        }
+    }
 
-    const deleteModBlock = (function () {
+    function deleteModBlock() {
         function precondition(scope) {
             if (scope.block.type === "modBlock" && getBlocksByType("modBlock").length > 1) {
                 return "enabled";
@@ -283,10 +248,10 @@ BF2042Portal.Extensions = (function () {
             weight: 100,
             preconditionFn: precondition,
             callback: callback
-        };
-    })();
+        }
+    }
 
-    const openDocumentation = (function () {
+    function openDocumentation() {
         const documentationUrl = "https://docs.bfportal.gg/docs/generated";
 
         function precondition() {
@@ -304,10 +269,10 @@ BF2042Portal.Extensions = (function () {
             weight: 100,
             preconditionFn: precondition,
             callback: callback
-        };
-    })();
+        }
+    }
 
-    const jumpToSubRoutine = (function () {
+    function jumpToSubRoutine() {
         function precondition(scope) {
             if (scope.block.type === "subroutineInstanceBlock") {
                 return "enabled";
@@ -336,10 +301,10 @@ BF2042Portal.Extensions = (function () {
             weight: 100,
             preconditionFn: precondition,
             callback: callback
-        };
-    })();
+        }
+    }
 
-    const toggleDistractionFreeMode = (function () {
+    function toggleDistractionFreeMode() {
         function precondition() {
             return "enabled";
         }
@@ -357,10 +322,10 @@ BF2042Portal.Extensions = (function () {
             weight: 100,
             preconditionFn: precondition,
             callback: callback
-        };
-    })();
+        }
+    }
 
-    const toggleToolbox = (function () {
+    function toggleToolbox() {
         function precondition() {
             return "enabled";
         }
@@ -378,8 +343,16 @@ BF2042Portal.Extensions = (function () {
             weight: 100,
             preconditionFn: precondition,
             callback: callback
-        };
-    })();
+        }
+    }
+
+    function exportBlocksWorkspace() {
+        return exportBlocks("exportBlocksWorkspace", _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE);
+    }
+
+    function exportBlocksBlock() {
+        return exportBlocks("exportBlocksBlock", _Blockly.ContextMenuRegistry.ScopeType.BLOCK);
+    }
 
     function exportBlocks(id, scopeType) {
         function precondition() {
@@ -387,7 +360,7 @@ BF2042Portal.Extensions = (function () {
         }
 
         async function callback(scope) {
-            showContextMenuWithBack([{
+            const menuItems = [{
                 text: "XML",
                 enabled: true,
                 callback: () => exportToXml(scope)
@@ -395,31 +368,27 @@ BF2042Portal.Extensions = (function () {
             {
                 text: "SVG",
                 enabled: true,
-                callback: exportToSvg
+                callback: () => exportToSvg(scope)
             },
             {
-                text: "PNG (Download)",
+                text: "PNG",
                 enabled: true,
-                callback: exportToPngAsFile
-            },
-            {
-                text: "PNG (Clipboard)",
-                enabled: true,
-                callback: exportToPngOnClipboard
-            }]);
+                callback: () => exportToPngAsFile(scope)
+            }];
+
+            if (BF2042Portal.Shared.isCopyBlobToClipboardSupported()) {
+                menuItems.push({
+                    text: "PNG (Clipboard)",
+                    enabled: true,
+                    callback: () => exportToPngOnClipboard(scope)
+                });
+            }
+
+            showContextMenuWithBack(menuItems);
         }
 
         async function exportToXml(scope) {
-            let blocks = undefined;
-
-            if(selectedBlocks.length > 0) {
-                blocks = selectedBlocks;
-            }
-
-            if(!blocks && (_Blockly.selected || scope.block)) {
-                blocks = [_Blockly.selected || scope.block];
-            }
-
+            const blocks = getSelectedBlocks(scope);
             const xmlText = saveXml(blocks);
 
             if (!xmlText) {
@@ -433,15 +402,17 @@ BF2042Portal.Extensions = (function () {
             downloadFile(dataUri, "workspace.xml");
         }
 
-        async function exportToSvg() {
-            const svgData = blocksToSvg(selectedBlocks);
+        async function exportToSvg(scope) {
+            const blocks = getSelectedBlocks(scope);
+            const svgData = blocksToSvg(blocks);
 
             downloadFile(svgData.svg, "screenshot.svg");
         }
 
-        async function exportToPngAsFile() {
+        async function exportToPngAsFile(scope) {
             try {
-                const svgData = blocksToSvg(selectedBlocks);
+                const blocks = getSelectedBlocks(scope);
+                const svgData = blocksToSvg(blocks);
                 const pngData = await svgToData(svgData, 1, "png");
 
                 downloadFile(pngData, "screenshot.png");
@@ -453,12 +424,13 @@ BF2042Portal.Extensions = (function () {
             }
         }
 
-        async function exportToPngOnClipboard() {
+        async function exportToPngOnClipboard(scope) {
             try {
-                const svgData = blocksToSvg(selectedBlocks);
+                const blocks = getSelectedBlocks(scope);
+                const svgData = blocksToSvg(blocks);
                 const blobData = await svgToData(svgData, 1, "blob");
 
-                await navigator.clipboard.write([new ClipboardItem({ [blobData.type]: blobData })]);
+                await BF2042Portal.Shared.copyBlobToClipboard(blobData);
 
                 alert("Done!");
             }
@@ -474,7 +446,7 @@ BF2042Portal.Extensions = (function () {
             const workspace = _Blockly.getMainWorkspace();
             let x, y, width, height;
 
-            if (blocks.length > 0) {
+            if (blocks && blocks.length > 0) {
                 //Determine bounding box of the selection
                 let minX, minY, maxX, maxY;
 
@@ -611,13 +583,10 @@ BF2042Portal.Extensions = (function () {
             weight: 100,
             preconditionFn: precondition,
             callback: callback
-        };
+        }
     }
 
-    const exportBlocksWorkspace = exportBlocks("exportBlocksWorkspace", _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE);
-    const exportBlocksBlock = exportBlocks("exportBlocksBlock", _Blockly.ContextMenuRegistry.ScopeType.BLOCK);
-
-    const importBlocksFromFile = (function () {
+    function importBlocksFromFile() {
         function precondition() {
             return "enabled";
         }
@@ -669,16 +638,16 @@ BF2042Portal.Extensions = (function () {
         }
 
         return {
-            id: "importBlocks",
+            id: "importBlocksFromFile",
             displayText: "Import Blocks from File",
             scopeType: _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE,
             weight: 100,
             preconditionFn: precondition,
             callback: callback
-        };
-    })();
+        }
+    }
 
-    const addBlock = (function () {
+    function addBlock() {
         function precondition() {
             return "enabled";
         }
@@ -701,7 +670,7 @@ BF2042Portal.Extensions = (function () {
 
                             let role;
 
-                            switch(entry2.type) {
+                            switch (entry2.type) {
                                 case "mod":
                                     role = "⚫";
                                     break;
@@ -757,46 +726,104 @@ BF2042Portal.Extensions = (function () {
             id: "addBlock",
             displayText: "Add Block >",
             scopeType: _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE,
-            weight: -100,
+            weight: 100,
             preconditionFn: precondition,
             callback: callback
-        };
-    })();
-
-    //Based on: https://groups.google.com/g/blockly/c/LXnMujtEzJY/m/FKQjI4OwAwAJ
-    function updateMouseCoords(event) {
-        const mainWorkspace = _Blockly.getMainWorkspace();
-
-        if (!mainWorkspace) {
-            return;
         }
-
-        // Gets the x and y position of the cursor relative to the workspace's parent svg element.
-        const mouseXY = _Blockly.utils.mouseToSvg(
-            event,
-            mainWorkspace.getParentSvg(),
-            mainWorkspace.getInverseScreenCTM()
-        );
-
-        // Gets where the visible workspace starts in relation to the workspace's parent svg element.
-        const absoluteMetrics = mainWorkspace.getMetricsManager().getAbsoluteMetrics();
-
-        // In workspace coordinates 0,0 is where the visible workspace starts.
-        mouseXY.x -= absoluteMetrics.left;
-        mouseXY.y -= absoluteMetrics.top;
-
-        // Takes into account if the workspace is scrolled.
-        mouseXY.x -= mainWorkspace.scrollX;
-        mouseXY.y -= mainWorkspace.scrollY;
-
-        // Takes into account if the workspace is zoomed in or not.
-        mouseXY.x /= mainWorkspace.scale;
-        mouseXY.y /= mainWorkspace.scale;
-
-        mouseCoords.x = mouseXY.x;
-        mouseCoords.y = mouseXY.y;
     }
 
+    function separatorWorkspace() {
+        return separator("separatorWorkspace", _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE);
+    }
+
+    function separatorBlock() {
+        return separator("separatorBlock", _Blockly.ContextMenuRegistry.ScopeType.BLOCK);
+    }
+
+    function separator(id, scope) {
+        return {
+            id: id,
+            displayText: "---",
+            scopeType: scope,
+            weight: 100,
+            preconditionFn: () => "disabled",
+            callback: () => {}
+        }
+    }
+
+    //Blockly functions - Menus
+    function optionsWorkspace() {
+        return createMenu("optionsWorkspace", "Options", _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE);
+    }
+
+    function optionsBlock() {
+        return createMenu("optionsBlock", "Options", _Blockly.ContextMenuRegistry.ScopeType.BLOCK);
+    }
+
+    function createMenu(id, name, scopeType) {
+        function precondition() {
+            return "enabled";
+        }
+
+        async function callback(scope) {
+            const menu = blocklyConfig.menus[id];
+            const subMenuOptions = [];
+
+            for (let i = 0; i < menu.options.length; i++) {
+                const subMenuItem = createSubMenuItem(menu.options[i], scopeType, scope);
+
+                if (!subMenuItem) {
+                    continue;
+                }
+
+                subMenuOptions.push(subMenuItem);
+            }
+
+            showContextMenuWithBack(subMenuOptions);
+        }
+
+        return {
+            id: id,
+            displayText: `${name} >`,
+            scopeType: scopeType,
+            weight: 100,
+            preconditionFn: precondition,
+            callback: callback,
+            options: []
+        }
+    }
+
+    function createSubMenuItem(id, scopeType, scope) {
+        let data;
+
+        if (id.startsWith("items.")) {
+            data = blocklyConfig.items[id.substring("items.".length)];
+        }
+        else if (id.startsWith("menus.")) {
+            data = blocklyConfig.menus[id.substring("menus.".length)];
+        }
+
+        if (!data || data.scopeType != scopeType) {
+            return undefined;
+        }
+
+        return {
+            text: typeof (data.displayText) === "string" ? data.displayText : data.displayText(scope),
+            enabled: data.preconditionFn(scope) === "enabled",
+            callback: () => data.callback(scope)
+        }
+    }
+
+    //Blockly functions - Helpers
+    function registerMenu(menu) {
+        blocklyConfig.menus[menu.id] = menu;
+    }
+
+    function registerItem(item) {
+        blocklyConfig.items[item.id] = item;
+    }
+
+    //Private functions
     function saveXml(blocks) {
         const workspace = _Blockly.getMainWorkspace();
 
@@ -958,6 +985,28 @@ BF2042Portal.Extensions = (function () {
         return str.split(" ").map(s => s.charAt(0).toUpperCase() + s.substr(1).toLowerCase()).join(" ")
     }
 
+    //API functions
+    function getSelectedBlocks(scope) {
+        let blocks = undefined;
+
+        if (selectedBlocks.length > 0) {
+            blocks = selectedBlocks;
+        }
+
+        if (!blocks && (_Blockly.selected || (scope !== undefined && scope.block))) {
+            blocks = [_Blockly.selected || scope.block];
+        }
+
+        return blocks;
+    }
+
+    function getMouseCoords() {
+        return {
+            x: mouseCoords.x,
+            y: mouseCoords.y
+        }
+    }
+
     function showContextMenuWithBack(options) {
         contextMenuStack.push(lastContextMenu.options);
 
@@ -969,7 +1018,40 @@ BF2042Portal.Extensions = (function () {
 
                 _Blockly.ContextMenu.show(lastContextMenu.e, menu[0], lastContextMenu.rtl);
             }
+        }, {
+            text: "---",
+            enabled: false,
+            callback: () => {}
         }).concat(options), lastContextMenu.rtl);
+    }
+
+    //Initialize functions
+    function init() {
+        window.addEventListener("bf2042-portal-extensions-init", async function (message) {
+            BF2042Portal.Plugins.init({
+                api: {
+                    getSelectedBlocks: getSelectedBlocks,
+                    getMouseCoords: getMouseCoords,
+                    showContextMenuWithBack: showContextMenuWithBack,
+                    registerMenu: registerMenu,
+                    registerItem: registerItem,
+                    createMenu: createMenu
+                },
+                version: message.detail.version,
+                plugins: message.detail.plugins
+            });
+        });
+
+        cssFixes();
+        hookBlockDefinitions();
+        hookContextMenu();
+        hookWorkspaceSvg();
+
+        initializeDocumentEvents();
+        intializeBlockly();
+
+        const event = new Event("bf2042-portal-extensions-init");
+        document.dispatchEvent(event);
     }
 
     function cssFixes() {
@@ -1041,14 +1123,120 @@ BF2042Portal.Extensions = (function () {
         _Blockly.Workspace.prototype.constructor = function () {
             originalWorkspaceSvg.apply(this, arguments);
 
-            setTimeout(function() {
+            setTimeout(function () {
                 initializeWorkspaceEvents();
-            
+
                 BF2042Portal.Plugins.initializeWorkspace();
             }, 0);
         }
     }
 
+    function initializeDocumentEvents() {
+        document.addEventListener("keydown", function (e) {
+            shiftKey = e.shiftKey;
+        });
+
+        document.addEventListener("keyup", function (e) {
+            shiftKey = e.shiftKey;
+        });
+    }
+
+    function intializeBlockly() {
+        //NOTE: Register existing items
+        for(const key in _Blockly.ContextMenuRegistry.registry.registry_) {
+            registerItem(_Blockly.ContextMenuRegistry.registry.registry_[key]);
+        }
+
+        //NOTE: Delete existing items
+        _Blockly.ContextMenuRegistry.registry.unregister("cleanWorkspace");
+        _Blockly.ContextMenuRegistry.registry.unregister("workspaceDelete");
+
+        const optionsWorkspaceMenu = optionsWorkspace();
+        optionsWorkspaceMenu.weight = -99;
+        optionsWorkspaceMenu.options = [
+            "items.cleanWorkspace",
+            "items.workspaceDelete",
+            "items.separatorWorkspace",
+            "items.collapseAllBlocks",
+            "items.expandAllBlocks",
+            "items.openDocumentation",
+            "items.toggleDistractionFreeMode",
+            "items.toggleToolbox",
+            "items.separatorWorkspace",
+            "items.exportBlocksWorkspace",
+            "items.importBlocksFromFile",
+            "items.separatorWorkspace",
+            "items.pasteFromClipboard",
+        ];
+
+        const optionsBlockMenu = optionsBlock();
+        optionsBlockMenu.weight = -99;
+        optionsBlockMenu.options = [
+            "items.deleteModBlock",
+            "items.jumpToSubRoutine",
+            "items.separatorBlock",
+            "items.toggleComments",
+            "items.toggleInputs",
+            "items.toggleCollapse",
+            "items.separatorBlock",
+            "items.exportBlocksBlock",
+            "items.separatorBlock",
+            "items.copyToClipboard",
+        ]
+
+        registerMenu(optionsWorkspaceMenu);
+        registerMenu(optionsBlockMenu);
+
+        registerItem(copyToClipboard());
+        registerItem(pasteFromClipboard());
+        registerItem(toggleComments());
+        registerItem(toggleInputs());
+        registerItem(toggleCollapse());
+        registerItem(collapseAllBlocks());
+        registerItem(expandAllBlocks());
+        registerItem(deleteModBlock());
+        registerItem(openDocumentation());
+        registerItem(jumpToSubRoutine());
+        registerItem(toggleDistractionFreeMode());
+        registerItem(toggleToolbox());
+        registerItem(exportBlocksWorkspace());
+        registerItem(exportBlocksBlock());
+        registerItem(importBlocksFromFile());
+        registerItem(separatorWorkspace());
+        registerItem(separatorBlock());
+
+        const addBlockMenuItem = addBlock();
+        addBlockMenuItem.weight = -100;
+
+        registerItem(addBlockMenuItem);
+
+        const contextMenuStructure = [
+            "items.addBlock",
+            "menus.optionsWorkspace",
+            "menus.optionsBlock"
+        ];
+
+        contextMenuStructure.forEach(function (item) {
+            let menuItem;
+
+            if (item.startsWith("items.")) {
+                const itemId = item.substring("items.".length);
+                menuItem = blocklyConfig.items[itemId];
+            }
+            else if (item.startsWith("menus.")) {
+                const menuId = item.substring("menus.".length);
+                menuItem = blocklyConfig.menus[menuId];
+            }
+
+            if (!menuItem) {
+                return;
+            }
+
+            _Blockly.ContextMenuRegistry.registry.register(menuItem);
+        });
+    }
+
+    //Internal functions
     function initializeBlocks() {
         //Blocks - Hard-coded
         blockLookup.push({
@@ -1078,7 +1266,7 @@ BF2042Portal.Extensions = (function () {
             internalName: "Compare",
             displayName: "Compare"
         });*/
-        
+
         blockLookup.push({
             type: "literal",
             category: getCategory("LITERALS"),
@@ -1106,14 +1294,14 @@ BF2042Portal.Extensions = (function () {
             internalName: "ArrayContains",
             displayName: getTranslation("PYRITE_CONVENIENCE_ARRAYCONTAINS")
         });
-        
+
         blockLookup.push({
             type: "action",
             category: getCategory("CONVENIENCE"),
             internalName: "IndexOfArrayValue",
             displayName: getTranslation("PYRITE_CONVENIENCE_INDEXOFARRAYVALUE")
         });
-        
+
         blockLookup.push({
             type: "action",
             category: getCategory("CONVENIENCE"),
@@ -1129,11 +1317,11 @@ BF2042Portal.Extensions = (function () {
             const element = blockDefinitions.values[index];
 
             //NOTE: Some values have no category...
-            if(!element.category) {
-                if(element.name == "GetVariable") {
+            if (!element.category) {
+                if (element.name == "GetVariable") {
                     element.category = "VARIABLES";
                 }
-                else if(selectionLists.includes(element.name)) {
+                else if (selectionLists.includes(element.name)) {
                     element.category = "SELECTION_LISTS";
                 }
                 else {
@@ -1154,8 +1342,8 @@ BF2042Portal.Extensions = (function () {
             const element = blockDefinitions.actions[index];
 
             //NOTE: Some values have no category...
-            if(!element.category) {
-                if(element.name == "SetVariable") {
+            if (!element.category) {
+                if (element.name == "SetVariable") {
                     element.category = "VARIABLES";
                 }
                 else {
@@ -1198,7 +1386,7 @@ BF2042Portal.Extensions = (function () {
                 });
             }
         });
-        
+
         function getCategory(key) {
             if (!key) {
                 return undefined;
@@ -1218,16 +1406,6 @@ BF2042Portal.Extensions = (function () {
 
             return firstElement;
         }
-    }
-
-    function initializeDocumentEvents() {
-        document.addEventListener("keydown", function (e) {
-            shiftKey = e.shiftKey;
-        });
-
-        document.addEventListener("keyup", function (e) {
-            shiftKey = e.shiftKey;
-        });
     }
 
     function initializeWorkspaceEvents() {
@@ -1291,37 +1469,38 @@ BF2042Portal.Extensions = (function () {
         });
     }
 
-    function initializePlugins() {
-        BF2042Portal.Plugins.init({
-            selectedBlocks: selectedBlocks
-        });
-    }
+    //Based on: https://groups.google.com/g/blockly/c/LXnMujtEzJY/m/FKQjI4OwAwAJ
+    function updateMouseCoords(event) {
+        const mainWorkspace = _Blockly.getMainWorkspace();
 
-    function init() {
-        cssFixes();
-        hookBlockDefinitions();
-        hookContextMenu();
-        hookWorkspaceSvg();
+        if (!mainWorkspace) {
+            return;
+        }
 
-        initializeDocumentEvents();
-        initializePlugins();
+        // Gets the x and y position of the cursor relative to the workspace's parent svg element.
+        const mouseXY = _Blockly.utils.mouseToSvg(
+            event,
+            mainWorkspace.getParentSvg(),
+            mainWorkspace.getInverseScreenCTM()
+        );
 
-        _Blockly.ContextMenuRegistry.registry.register(addBlock);
-        _Blockly.ContextMenuRegistry.registry.register(deleteModBlock);
-        _Blockly.ContextMenuRegistry.registry.register(jumpToSubRoutine);
-        _Blockly.ContextMenuRegistry.registry.register(toggleComments);
-        _Blockly.ContextMenuRegistry.registry.register(toggleInputs);
-        _Blockly.ContextMenuRegistry.registry.register(toggleCollapse);
-        _Blockly.ContextMenuRegistry.registry.register(collapseAllBlocks);
-        _Blockly.ContextMenuRegistry.registry.register(expandAllBlocks);
-        _Blockly.ContextMenuRegistry.registry.register(openDocumentation);
-        _Blockly.ContextMenuRegistry.registry.register(toggleDistractionFreeMode);
-        _Blockly.ContextMenuRegistry.registry.register(toggleToolbox);
-        _Blockly.ContextMenuRegistry.registry.register(exportBlocksWorkspace);
-        _Blockly.ContextMenuRegistry.registry.register(exportBlocksBlock);
-        _Blockly.ContextMenuRegistry.registry.register(importBlocksFromFile);
-        _Blockly.ContextMenuRegistry.registry.register(copyToClipboard);
-        _Blockly.ContextMenuRegistry.registry.register(pasteFromClipboard);
+        // Gets where the visible workspace starts in relation to the workspace's parent svg element.
+        const absoluteMetrics = mainWorkspace.getMetricsManager().getAbsoluteMetrics();
+
+        // In workspace coordinates 0,0 is where the visible workspace starts.
+        mouseXY.x -= absoluteMetrics.left;
+        mouseXY.y -= absoluteMetrics.top;
+
+        // Takes into account if the workspace is scrolled.
+        mouseXY.x -= mainWorkspace.scrollX;
+        mouseXY.y -= mainWorkspace.scrollY;
+
+        // Takes into account if the workspace is zoomed in or not.
+        mouseXY.x /= mainWorkspace.scale;
+        mouseXY.y /= mainWorkspace.scale;
+
+        mouseCoords.x = mouseXY.x;
+        mouseCoords.y = mouseXY.y;
     }
 
     return {
@@ -1335,7 +1514,7 @@ BF2042Portal.Plugins = (function () {
         this.baseUrl = baseUrl;
         this.manifest = manifest;
 
-        this.initializeWorkspace = function() {
+        this.initializeWorkspace = function () {
             //Do nothing
         }
 
@@ -1343,8 +1522,32 @@ BF2042Portal.Plugins = (function () {
             return `${baseUrl}/${relativeUrl}`;
         }
 
+        this.getMouseCoords = function () {
+            return initData.api.getMouseCoords();
+        }
+
         this.getSelectedBlocks = function () {
-            return initData.selectedBlocks;
+            return initData.api.getSelectedBlocks();
+        }
+
+        this.showContextMenuWithBack = function (options) {
+            return initData.api.showContextMenuWithBack(options);
+        }
+
+        this.registerMenu = function (menu) {
+            return initData.api.registerMenu(menu);
+        }
+
+        this.registerItem = function (item) {
+            return initData.api.registerItem(item);
+        }
+
+        this.createMenu = function (id, scopeType, scope) {
+            return initData.api.createMenu(id, scopeType, scope);
+        }
+
+        this.getExtensionVersion = function () {
+            return initData.version;
         }
     }
 
@@ -1355,25 +1558,12 @@ BF2042Portal.Plugins = (function () {
     function init(data) {
         initData = data;
 
-        window.addEventListener("bf2042-portal-plugins-init", async function (message) {
-            const initData = message.detail;
-
-            loadPlugins(initData);
-        });
-
-        const event = new Event("bf2042-portal-plugins-init");
-        document.dispatchEvent(event);
+        loadPlugins(data.plugins);
     }
 
-    function initializeWorkspace() {
-        for(const pluginId in plugins) {
-            plugins[pluginId].initializeWorkspace();
-        }
-    }
-
-    async function loadPlugins(initData) {
-        for (let i = 0; i < initData.plugins.length; i++) {
-            const pluginData = initData.plugins[i];
+    async function loadPlugins(plugins) {
+        for (let i = 0; i < plugins.length; i++) {
+            const pluginData = plugins[i];
 
             loadPlugin(pluginData);
         }
@@ -1404,6 +1594,12 @@ BF2042Portal.Plugins = (function () {
         }
     }
 
+    function initializeWorkspace() {
+        for (const pluginId in plugins) {
+            plugins[pluginId].initializeWorkspace();
+        }
+    }
+
     function getPlugin(id) {
         const plugin = plugins[id];
 
@@ -1422,13 +1618,92 @@ BF2042Portal.Plugins = (function () {
 })();
 
 BF2042Portal.Shared = (function () {
+    let pasteTextFromClipboardImplementation = pasteTextFromClipboardDefault;
+    let pasteTextFromClipboardFirefoxCallback = () => { };
+
+    function init() {
+        //NOTE: If readText is not available, we are going to assume this is Firefox.
+        if (navigator.clipboard.readText !== undefined) {
+            return;
+        }
+
+        pasteTextFromClipboardImplementation = pasteTextFromClipboardFirefox;
+
+        window.addEventListener("bf2042-portal-extensions-paste", async function (message) {
+            pasteTextFromClipboardFirefoxCallback(message.detail);
+        });
+    }
+
+    async function copyTextToClipboard(text) {
+        return await navigator.clipboard.writeText(text);
+    }
+
+    async function copyBlobToClipboard(blobData) {
+        return await navigator.clipboard.write([new ClipboardItem({ [blobData.type]: blobData })]);
+    }
+
+    async function pasteTextFromClipboard() {
+        return await pasteTextFromClipboardImplementation();
+    }
+
+    async function pasteTextFromClipboardDefault() {
+        return await navigator.clipboard.readText();
+    }
+
+    async function pasteTextFromClipboardFirefox() {
+        return new Promise((resolve, reject) => {
+            pasteTextFromClipboardFirefoxCallback = (clipboard) => {
+                if (clipboard) {
+                    resolve(clipboard);
+                }
+                else {
+                    reject();
+                }
+            };
+
+            const event = new Event("bf2042-portal-extensions-paste");
+            document.dispatchEvent(event);
+        });
+    }
+
+    function isCopyBlobToClipboardSupported() {
+        return window.ClipboardItem !== undefined;
+    }
+
     function logError(message, error) {
         console.log(`[ERROR] ${message}`, error);
     }
 
+    function loadFromLocalStorage(key) {
+        const data = localStorage.getItem(key);
+
+        try {
+            if (typeof (data) === "string") {
+                return JSON.parse(data);
+            }
+        }
+        catch (e) {
+            //Do nothing
+        }
+
+        return {};
+    }
+
+    function saveToLocalStorage(key, data) {
+        localStorage.setItem(key, JSON.stringify(data));
+    }
+
     return {
+        init: init,
+        copyTextToClipboard: copyTextToClipboard,
+        copyBlobToClipboard: copyBlobToClipboard,
+        pasteTextFromClipboard: pasteTextFromClipboard,
+        isCopyBlobToClipboardSupported: isCopyBlobToClipboardSupported,
+        loadFromLocalStorage: loadFromLocalStorage,
+        saveToLocalStorage: saveToLocalStorage,
         logError: logError
     }
 })();
 
+BF2042Portal.Shared.init();
 BF2042Portal.Extensions.init();

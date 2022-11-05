@@ -1,6 +1,7 @@
+const EVENT_EXTENSIONS_INIT = "bf2042-portal-extensions-init";
 const EVENT_EXTENSIONS_PASTE = "bf2042-portal-extensions-paste";
-const EVENT_PLUGINS_INIT = "bf2042-portal-plugins-init";
 
+let manifest;
 let config;
 
 function injectScript(relativeUrl) {
@@ -22,6 +23,13 @@ function dispatchWebEvent(eventType, payload) {
 }
 
 function initEvents() {
+    document.addEventListener(EVENT_EXTENSIONS_INIT, async function () {
+        dispatchWebEvent(EVENT_EXTENSIONS_INIT, {
+            version: manifest.version,
+            plugins: config.plugins.filter(e => e.enabled)
+        });
+    });
+    
     //NOTE: Provide an alternative if the Paste API is not available on the webpage
     if (navigator.clipboard.readText !== undefined) {
         document.addEventListener(EVENT_EXTENSIONS_PASTE, async function () {
@@ -37,12 +45,6 @@ function initEvents() {
             document.body.removeChild(temp);
         });
     }
-
-    document.addEventListener(EVENT_PLUGINS_INIT, async function () {
-        dispatchWebEvent(EVENT_PLUGINS_INIT, {
-            plugins: config.plugins.filter(e => e.enabled)
-        });
-    });
 }
 
 async function getConfig() {
@@ -62,9 +64,10 @@ async function getConfig() {
 }
 
 async function init() {
-    initEvents();
-
+    manifest = chrome.runtime.getManifest();
     config = await getConfig();
+
+    initEvents();
 
     injectScript("/web/app.js");
 }

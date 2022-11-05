@@ -1,0 +1,8 @@
+{
+    "id": "test",
+    "name": "Test",
+    "version": "1.0.0",
+    "description": "Test functionality of the plugin system",
+    "author": "LennardF1989",
+    "main": "index.js"
+}
