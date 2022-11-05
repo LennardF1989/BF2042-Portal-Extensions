@@ -95,9 +95,17 @@ BF2042Portal.Extensions = (function () {
 
     function toggleComments() {
         function displayText(scope) {
-            return scope.block.getCommentIcon()
-                ? "Remove Comment"
-                : "Add Comment";
+            const toggleType = scope.block.getCommentIcon()
+                ? "Remove"
+                : "Add";
+
+            const blocks = getSelectedBlocks(scope);
+
+            if(blocks.length === 1) {
+                return `${toggleType} Comment`;
+            }
+
+            return `${toggleType} Comment (${blocks.length} Blocks)`;
         }
 
         function precondition() {
@@ -105,7 +113,13 @@ BF2042Portal.Extensions = (function () {
         }
 
         async function callback(scope) {
-            scope.block.getCommentIcon() ? scope.block.setCommentText(null) : scope.block.setCommentText("");
+            const commentText = scope.block.getCommentIcon() ? null : "";
+
+            const blocks = getSelectedBlocks(scope);
+
+            for (let i = 0; i < blocks.length; i++) {
+                blocks[i].setCommentText(commentText);
+            }
         }
 
         return {
@@ -120,9 +134,17 @@ BF2042Portal.Extensions = (function () {
 
     function toggleInputs() {
         function displayText(scope) {
-            return scope.block.getInputsInline()
-                ? "Show Inputs Vertically"
-                : "Show Inputs Horizontally";
+            const toggleType = scope.block.getInputsInline()
+                ? "Vertically"
+                : "Horizontally";
+
+            const blocks = getSelectedBlocks(scope);
+
+            if(blocks.length === 1) {
+                return `Show Inputs ${toggleType}`;
+            }
+
+            return `Show Inputs ${toggleType} (${blocks.length} Blocks)`;
         }
 
         function precondition() {
@@ -130,7 +152,13 @@ BF2042Portal.Extensions = (function () {
         }
 
         async function callback(scope) {
-            scope.block.setInputsInline(!scope.block.getInputsInline());
+            const isInputInline = !scope.block.getInputsInline();
+
+            const blocks = getSelectedBlocks(scope);
+
+            for (let i = 0; i < blocks.length; i++) {
+                blocks[i].setInputsInline(isInputInline);
+            }
         }
 
         return {
@@ -145,9 +173,17 @@ BF2042Portal.Extensions = (function () {
 
     function toggleCollapse() {
         function displayText(scope) {
-            return scope.block.isCollapsed()
-                ? "Expand Block"
-                : "Collapse Block";
+            const toggleType = scope.block.isCollapsed()
+                ? "Expand"
+                : "Collapse";
+
+            const blocks = getSelectedBlocks(scope);
+
+            if(blocks.length === 1) {
+                return `${toggleType} Block`;
+            }
+
+            return `${toggleType} ${blocks.length} Blocks`;
         }
 
         function precondition() {
@@ -155,7 +191,13 @@ BF2042Portal.Extensions = (function () {
         }
 
         async function callback(scope) {
-            scope.block.setCollapsed(!scope.block.isCollapsed());
+            const isCollapsed = !scope.block.isCollapsed();
+
+            const blocks = getSelectedBlocks(scope);
+
+            for (let i = 0; i < blocks.length; i++) {
+                blocks[i].setCollapsed(isCollapsed);
+            }
         }
 
         return {
@@ -169,21 +211,44 @@ BF2042Portal.Extensions = (function () {
     }
 
     function collapseAllBlocks() {
+        function displayText(scope) {
+            const blocks = getSelectedBlocks(scope);
+
+            if(blocks) {
+                if(blocks.length === 1) {
+                    return `Collapse Block`;
+                }
+                
+                return `Collapse ${blocks.length} Blocks`;
+            }
+
+            return "Collapse All Blocks";
+        }
+
         function precondition() {
             return "enabled";
         }
 
-        async function callback() {
-            const workspace = _Blockly.getMainWorkspace();
+        function callback(scope) {
+            const blocks = getSelectedBlocks(scope);
 
-            for (const blockID in workspace.blockDB_) {
-                workspace.blockDB_[blockID].setCollapsed(true);
+            if(blocks) {
+                for (let i = 0; i < blocks.length; i++) {
+                    blocks[i].setCollapsed(true);
+                }
+            }
+            else {
+                const workspace = _Blockly.getMainWorkspace();
+
+                for (const blockID in workspace.blockDB_) {
+                    workspace.blockDB_[blockID].setCollapsed(true);
+                }
             }
         }
 
         return {
             id: "collapseAllBlocks",
-            displayText: "Collapse All Blocks",
+            displayText: displayText,
             scopeType: _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE,
             weight: 100,
             preconditionFn: precondition,
@@ -192,21 +257,44 @@ BF2042Portal.Extensions = (function () {
     }
 
     function expandAllBlocks() {
+        function displayText(scope) {
+            const blocks = getSelectedBlocks(scope);
+
+            if(blocks) {
+                if(blocks.length === 1) {
+                    return `Expand Block`;
+                }
+
+                return `Expand ${blocks.length} Blocks`;
+            }
+
+            return "Expand All Blocks";
+        }
+
         function precondition() {
             return "enabled";
         }
 
-        async function callback() {
-            const workspace = _Blockly.getMainWorkspace();
+        function callback(scope) {
+            const blocks = getSelectedBlocks(scope);
 
-            for (const blockID in workspace.blockDB_) {
-                workspace.blockDB_[blockID].setCollapsed(false);
+            if(blocks) {
+                for (let i = 0; i < blocks.length; i++) {
+                    blocks[i].setCollapsed(false);
+                }
+            }
+            else {
+                const workspace = _Blockly.getMainWorkspace();
+
+                for (const blockID in workspace.blockDB_) {
+                    workspace.blockDB_[blockID].setCollapsed(false);
+                }
             }
         }
 
         return {
             id: "expandAllBlocks",
-            displayText: "Expand All Blocks",
+            displayText: displayText,
             scopeType: _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE,
             weight: 100,
             preconditionFn: precondition,
@@ -1416,7 +1504,9 @@ BF2042Portal.Extensions = (function () {
         const workspace = _Blockly.getMainWorkspace();
 
         workspace.addChangeListener(function (e) {
-            if (e.type === _Blockly.Events.CLICK) {
+            console.log(e);
+
+            if (e.type === _Blockly.Events.CLICK || e.type === _Blockly.Events.SELECTED) {
                 if (shiftKey) {
                     if (!e.blockId) {
                         return;
