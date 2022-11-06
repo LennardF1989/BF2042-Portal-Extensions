@@ -1,0 +1,8 @@
+{
+    "versions": {
+        "latest": {
+            "name": "Latest (bleeding edge)",
+            "url": "http://localhost:1989/dist/latest/app.js"
+        }
+    }
+}

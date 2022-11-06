@@ -4,7 +4,7 @@ const archiver = require("archiver");
 
 const args = process.argv.slice(2);
 
-const baseFiles = [
+const baseExtensionFiles = [
     "icon-128.png",
     "extension/app.js",
     "options/img/logo.svg",
@@ -14,11 +14,10 @@ const baseFiles = [
     "web/app.js"
 ];
 
-function prepareFiles(files, outputPath, manifestTransformFileName) {
-    const finalOutputPath = "temp/" + outputPath;
+function prepareWebFiles(files, outputPath) {
+    const finalOutputPath = "dist/" + outputPath;
 
     const finalFiles = [
-        ...baseFiles,
         ...files
     ];
 
@@ -35,11 +34,36 @@ function prepareFiles(files, outputPath, manifestTransformFileName) {
             });
         }
 
-        fs.copyFileSync(`src/${file}`, `${finalOutputPath}/${file}`);
+        fs.copyFileSync(`src/web/${file}`, `${finalOutputPath}/${file}`);
+    });
+}
+
+function prepareBrowserFiles(files, outputPath, manifestTransformFileName) {
+    const finalOutputPath = "temp/" + outputPath;
+
+    const finalFiles = [
+        ...baseExtensionFiles,
+        ...files
+    ];
+
+    fs.mkdirSync(finalOutputPath, {
+        recursive: true
     });
 
-    const manifest = require("../src/manifest.base.json");
-    const manifestTransform = require(`../src/${manifestTransformFileName}`);
+    finalFiles.forEach(file => {
+        const filePath = path.parse(file);
+
+        if (filePath.dir !== "") {
+            fs.mkdirSync(`${finalOutputPath}/${filePath.dir}`, {
+                recursive: true
+            });
+        }
+
+        fs.copyFileSync(`src/browser/${file}`, `${finalOutputPath}/${file}`);
+    });
+
+    const manifest = require("../src/browser/manifest.base.json");
+    const manifestTransform = require(`../src/browser/${manifestTransformFileName}`);
     const combinedManifest = { ...manifest, ...manifestTransform };
 
     fs.writeFileSync(`${finalOutputPath}/manifest.json`, JSON.stringify(combinedManifest, null, "    "));
@@ -70,6 +94,7 @@ function hasFlag(flag) {
 }
 
 module.exports = {
-    prepareFiles: prepareFiles,
+    prepareWebFiles: prepareWebFiles,
+    prepareBrowserFiles: prepareBrowserFiles,
     packExtension: packExtension
 };

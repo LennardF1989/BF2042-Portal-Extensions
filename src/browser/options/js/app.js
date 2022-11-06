@@ -38,6 +38,16 @@ function init() {
     const version = chrome.runtime.getManifest().version;
     document.querySelector("#version").innerHTML = version;
 
+    document.querySelector("#officialManifest").addEventListener("click", async function(e) {
+        e.preventDefault();
+
+        manifestUrl = this.href;
+        manifestURLInputElement.value = manifestUrl;
+        await refreshManifest();
+
+        return false;
+    });
+
     document.querySelector("#refreshManifest").addEventListener("click", refreshManifest);
     document.querySelector("#confirmVersion").addEventListener("click", confirmVersion);
 
@@ -46,7 +56,6 @@ function init() {
     }, 0);
 }
 
-//http://localhost:1989/dist/manifest.json
 async function asyncInit() {
     config = await configService.loadConfig();
     manifestUrl = config.manifestUrl || "";
