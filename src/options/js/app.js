@@ -1,11 +1,9 @@
-const app = angular.module("bf2042", ["ngRoute"]);
-
-app.factory("persistence", function () {
+const configService = (function () {
     let config = {};
 
-    async function getConfig() {
+    async function loadConfig() {
         const result = await new Promise((resolve) => {
-            chrome.storage.local.get(["config"], function(result) {
+            chrome.storage.local.get(["config"], function (result) {
                 resolve(result.config);
             });
         });
@@ -15,200 +13,136 @@ app.factory("persistence", function () {
         return config;
     }
 
+    function getConfig() {
+        return config;
+    }
+
     function saveConfig() {
         chrome.storage.local.set({ "config": config });
     }
 
     return {
+        loadConfig: loadConfig,
         getConfig: getConfig,
         saveConfig: saveConfig
     }
-});
+})();
 
-app.config(function ($routeProvider) {
-    $routeProvider
-        .when("/plugins", {
-            templateUrl: "views/plugins.html"
-        })
-        .when("/snippets", {
-            templateUrl: "views/snippets.html"
-        })
-        .otherwise({
-            redirectTo: "/plugins"
-        });
-});
+const manifestURLInputElement = document.querySelector("#manifestURLInput");
+const versionDropdownElement = document.querySelector("#versionDropdown");
 
-app.controller("MainController", function () {
-    const vm = this;
+let manifestUrl;
+let manifestVersions;
 
-    vm.version = chrome.runtime.getManifest().version;
-});
+function init() {
+    const version = chrome.runtime.getManifest().version;
+    document.querySelector("#version").innerHTML = version;
 
-app.controller("PluginsController", function ($scope, persistence) {
-    const vm = this;
+    document.querySelector("#refreshManifest").addEventListener("click", refreshManifest);
+    document.querySelector("#confirmVersion").addEventListener("click", confirmVersion);
 
-    let config;
+    setTimeout(async function() {
+        await asyncInit();
+    }, 0);
+}
 
-    vm.$onInit = async function () {
-        config = await persistence.getConfig();
-        config.plugins = config.plugins || [];
-        config.developerMode = config.developerMode || false;
+//http://localhost:1989/dist/manifest.json
+async function asyncInit() {
+    config = await configService.loadConfig();
+    manifestUrl = config.manifestUrl || "";
+    manifestVersions = config.versions || [];
+    config.selectedVersion = config.selectedVersion || "";
 
-        vm.plugins = config.plugins;
-        vm.developerMode = config.developerMode;
+    manifestURLInputElement.value = manifestUrl;
+    await refreshManifest();
+    versionDropdownElement.value = config.selectedVersion;
+    updateElementValidation(versionDropdownElement, versionDropdownElement.value);
 
-        $scope.$apply();
+    document.querySelector("#loading").classList.add("d-none");
+    document.querySelector("#loaded").classList.remove("d-none");
+}
+
+async function refreshManifest() {
+    if(!manifestURLInputElement.value) {
+        updateElementValidation(manifestURLInputElement, false);
+        
+        return;
     }
 
-    vm.toggleDeveloperMode = function () {
-        config.developerMode = !config.developerMode;
+    manifestUrl = manifestURLInputElement.value;
 
-        if (!config.developerMode) {
-            config.plugins.forEach(e => {
-                e.liveReload = false;
-            });
-        }
+    try {
+        const response = await fetch(manifestUrl);
+        const data = await response.json();
 
-        vm.developerMode = config.developerMode;
+        manifestVersions = data.versions || {};
 
-        persistence.saveConfig();
+        updateElementValidation(manifestURLInputElement, true);
+
+        loadVersions(manifestVersions);
+    }
+    catch(e) {
+        updateElementValidation(manifestURLInputElement, false);
+
+        loadVersions([]);
+    }
+    
+    updateElementValidation(versionDropdownElement, versionDropdownElement.value);
+}
+
+function loadVersions(versions) {
+    removeAllChildNodes(versionDropdownElement);
+
+    for(const key in versions) {
+        const version = versions[key];
+
+        const option = document.createElement("option");
+        option.innerText = version.name;
+        option.value = key;
+
+        versionDropdownElement.appendChild(option);
+    }
+}
+
+function confirmVersion() {
+    if(!versionDropdownElement.value) {
+        return;
+    }
+    
+    const confirmText = `Please review the following information:
+- Manifest URL: ${manifestUrl}
+- Version: ${manifestVersions[versionDropdownElement.value].name}
+
+Are you sure you want to confirm these changes?`;
+
+    if(!confirm(confirmText)) {
+        return;
     }
 
-    vm.showModal = function () {
-        resetModal();
-        openModal();
+    let config = configService.getConfig();
+    
+    config.manifestUrl = manifestUrl;
+    config.versions = manifestVersions;
+    config.selectedVersion = versionDropdownElement.value;
+
+    configService.saveConfig();
+}
+
+function removeAllChildNodes(parent) {
+    while (parent.firstChild) {
+        parent.removeChild(parent.firstChild);
     }
+}
 
-    vm.toggleEnable = function (plugin) {
-        plugin.enabled = !plugin.enabled;
-
-        persistence.saveConfig();
+function updateElementValidation(element, isValid) {
+    if(isValid) {
+        element.classList.remove("is-invalid");
+        element.classList.add("is-valid");
     }
-
-    vm.toggleLiveReload = function (plugin) {
-        if (!plugin.liveReload && !confirm(`Are you sure you wish to enable live reload for '${plugin.manifest ? plugin.manifest.name : "Unknown"}'? This could affect performance and security!`)) {
-            return;
-        }
-
-        plugin.liveReload = !plugin.liveReload;
-
-        persistence.saveConfig();
+    else {
+        element.classList.remove("is-valid");
+        element.classList.add("is-invalid");
     }
+}
 
-    vm.update = async function (plugin) {
-        if (!plugin.liveReload && !confirm(`Are you sure you wish to update '${plugin.manifest ? plugin.manifest.name : "Unknown"}'?`)) {
-            return;
-        }
-
-        resetModal();
-
-        vm.pluginManifestUrl = plugin.manifestUrl;
-
-        vm.pluginUpdate = true;
-
-        await vm.reviewPlugin();
-
-        if (plugin.liveReload) {
-            vm.confirmPlugin();
-        }
-        else {
-            openModal();
-        }
-
-        $scope.$apply();
-    }
-
-    vm.delete = function (plugin) {
-        if (!confirm(`Are you sure you wish to remove '${plugin.manifest ? plugin.manifest.name : "Unknown"}'?`)) {
-            return;
-        }
-
-        const index = config.plugins.findIndex(e => e === plugin);
-        config.plugins.splice(index, 1);
-
-        persistence.saveConfig();
-    }
-
-    vm.reviewPlugin = async function () {
-        vm.pluginManifestError = undefined;
-
-        try {
-            if (!vm.pluginManifestUrl.endsWith("/manifest.json")) {
-                throw "Invalid URL: has to end with /manifest.json!";
-            }
-
-            const manifestResponse = await fetch(vm.pluginManifestUrl);
-            const manifestJson = await manifestResponse.json();
-
-            if (!manifestJson.id || !manifestJson.name || !manifestJson.version || !manifestJson.main) {
-                throw "Invalid manifest: id, name, version and main are required!";
-            }
-
-            vm.pluginManifest = manifestJson;
-
-            const baseUrl = vm.pluginManifestUrl.replace("/manifest.json", "");
-            const mainResponse = await fetch(`${baseUrl}/${manifestJson.main}`);
-            const mainText = await mainResponse.text();
-
-            vm.pluginBaseUrl = baseUrl;
-            vm.pluginMainContent = mainText;
-            vm.pluginConfirm = true;
-        }
-        catch (e) {
-            vm.pluginManifestError = e;
-        }
-
-        $scope.$apply();
-    }
-
-    vm.confirmPlugin = function () {
-        config.plugins = config.plugins || [];
-
-        const index = config.plugins.findIndex(e => e.manifestUrl === vm.pluginManifestUrl);
-        const plugin = config.plugins[index];
-
-        if (vm.pluginUpdate && index > -1) {
-            config.plugins.splice(index, 1);
-        }
-        else if (index > -1) {
-            resetModal();
-            closeModal();
-
-            return;
-        }
-
-        config.plugins.push({
-            enabled: plugin ? plugin.enabled : true,
-            liveReload: plugin ? plugin.liveReload : false,
-            baseUrl: vm.pluginBaseUrl,
-            manifestUrl: vm.pluginManifestUrl.trim(),
-            manifest: vm.pluginManifest,
-            mainContent: vm.pluginMainContent
-        });
-
-        persistence.saveConfig();
-
-        vm.plugins = config.plugins;
-
-        resetModal();
-        closeModal();
-    }
-
-    function openModal() {
-        $("#add-plugin-modal").modal("show");
-    }
-
-    function closeModal() {
-        $("#add-plugin-modal").modal("hide");
-    }
-
-    function resetModal() {
-        vm.pluginUpdate = undefined;
-        vm.pluginManifestError = undefined;
-        vm.pluginManifestUrl = undefined;
-        vm.pluginManifest = undefined;
-        vm.pluginBaseUrl = undefined;
-        vm.pluginMainContent = undefined;
-        vm.pluginConfirm = undefined;
-    }
-});
+init();

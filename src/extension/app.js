@@ -26,7 +26,7 @@ function initEvents() {
     document.addEventListener(EVENT_EXTENSIONS_INIT, async function () {
         dispatchWebEvent(EVENT_EXTENSIONS_INIT, {
             version: manifest.version,
-            plugins: config.plugins.filter(e => e.enabled)
+            extensionUrl: getSelectedVersionURL()
         });
     });
     
@@ -58,9 +58,17 @@ async function getConfig() {
         config = config || {};
     }
 
-    config.plugins = config.plugins || [];
+    config.manifestUrl = config.manifestUrl || "";
+    config.versions = config.versions || {};
+    config.selectedVersion = config.selectedVersion || "";
 
     return config || {};
+}
+
+function getSelectedVersionURL() {
+    const version = config.versions[config.selectedVersion];
+    
+    return version ? version.url : undefined;
 }
 
 async function init() {

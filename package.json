@@ -6,7 +6,7 @@
         "build:firefox": "node build/firefox.js",
         "build:all": "node build/build.js",
         "build:all:nopack": "node build/build.js --nopack",
-        "dev": "nodemon --watch src --exec npm run build:all:nopack"
+        "dev": "nodemon --ext * --watch src --exec npm run build:all:nopack"
     },
     "dependencies": {
         "archiver": "5.3.1",

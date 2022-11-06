@@ -1,0 +1,12 @@
+{
+    "versions": {
+        "stable": {
+            "name": "Stable (v1.1.1)",
+            "url": "http://localhost:1989/dist/stable/app.js"
+        },
+        "latest": {
+            "name": "Latest (bleeding edge)",
+            "url": "http://localhost:1989/dist/latest/app.js"
+        }
+    }
+}
