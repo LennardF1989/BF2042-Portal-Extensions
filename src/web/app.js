@@ -1504,8 +1504,6 @@ BF2042Portal.Extensions = (function () {
         const workspace = _Blockly.getMainWorkspace();
 
         workspace.addChangeListener(function (e) {
-            console.log(e);
-
             if (e.type === _Blockly.Events.CLICK || e.type === _Blockly.Events.SELECTED) {
                 if (shiftKey) {
                     if (!e.blockId) {
