@@ -1,3 +1,5 @@
+/// <reference path="App.ts"/>
+
 BF2042Portal.Extensions = (function () {
     const blocklyConfig = {
         menus: {},
@@ -697,7 +699,7 @@ BF2042Portal.Extensions = (function () {
                         const extension = inputElement.files[0].name.split('.').pop().toLowerCase()
 
                         if (extension === "json") {
-                            const loadData = JSON.parse(e.target.result);
+                            const loadData = JSON.parse(<string>e.target.result);
 
                             if (!loadJson(loadData)) {
                                 alert("Failed to import workspace from JSON!");
@@ -947,6 +949,8 @@ BF2042Portal.Extensions = (function () {
         const workspace = _Blockly.getMainWorkspace();
 
         try {
+            const variables = _Blockly.Xml.textToDom(data.variables ? data.variables : "<xml />");
+            
             _Blockly.Xml.domToVariables(variables, workspace);
             _Blockly.Xml.domToWorkspace(_Blockly.Xml.textToDom(data.mainWorkspace), workspace);
 
@@ -1570,203 +1574,3 @@ BF2042Portal.Extensions = (function () {
         init: init
     }
 })();
-
-BF2042Portal.Plugins = (function () {
-    //NOTE: Represents a Plugin-class
-    function Plugin(baseUrl, manifest) {
-        this.baseUrl = baseUrl;
-        this.manifest = manifest;
-
-        this.initializeWorkspace = function () {
-            //Do nothing
-        }
-
-        this.getUrl = function (relativeUrl) {
-            return `${baseUrl}/${relativeUrl}`;
-        }
-
-        this.getMouseCoords = function () {
-            return initData.api.getMouseCoords();
-        }
-
-        this.getSelectedBlocks = function () {
-            return initData.api.getSelectedBlocks();
-        }
-
-        this.showContextMenuWithBack = function (options) {
-            return initData.api.showContextMenuWithBack(options);
-        }
-
-        this.registerMenu = function (menu) {
-            return initData.api.registerMenu(menu);
-        }
-
-        this.registerItem = function (item) {
-            return initData.api.registerItem(item);
-        }
-
-        this.createMenu = function (id, scopeType, scope) {
-            return initData.api.createMenu(id, scopeType, scope);
-        }
-
-        this.getExtensionVersion = function () {
-            return initData.version;
-        }
-    }
-
-    const plugins = {};
-
-    let initData;
-
-    function init(data) {
-        initData = data;
-
-        loadPlugins(data.plugins);
-    }
-
-    async function loadPlugins(plugins) {
-        for (let i = 0; i < plugins.length; i++) {
-            const pluginData = plugins[i];
-
-            loadPlugin(pluginData);
-        }
-    }
-
-    async function loadPlugin(pluginData) {
-        try {
-            const plugin = new Plugin(pluginData.baseUrl, pluginData.manifest);
-            plugins[pluginData.manifest.id] = plugin;
-
-            if (pluginData.liveReload) {
-                const scriptElement = document.createElement("script");
-                scriptElement.setAttribute("type", "text/javascript");
-                scriptElement.setAttribute("src", plugin.getUrl(pluginData.manifest.main));
-
-                document.body.appendChild(scriptElement);
-            }
-            else if (pluginData.mainContent) {
-                const scriptElement = document.createElement("script");
-                scriptElement.setAttribute("type", "text/javascript");
-                scriptElement.innerHTML = `${pluginData.mainContent}\n//# sourceURL=${pluginData.manifest.id}.js`;
-
-                document.body.appendChild(scriptElement);
-            }
-        }
-        catch (e) {
-            BF2042Portal.Shared.logError(`Failed to load plugin '${pluginData.manifest.name}''`, e);
-        }
-    }
-
-    function initializeWorkspace() {
-        for (const pluginId in plugins) {
-            plugins[pluginId].initializeWorkspace();
-        }
-    }
-
-    function getPlugin(id) {
-        const plugin = plugins[id];
-
-        if (!plugin) {
-            throw `Plugin with id ${id} not found!`;
-        }
-
-        return plugin;
-    }
-
-    return {
-        init: init,
-        initializeWorkspace: initializeWorkspace,
-        getPlugin: getPlugin
-    };
-})();
-
-BF2042Portal.Shared = (function () {
-    let pasteTextFromClipboardImplementation = pasteTextFromClipboardDefault;
-    let pasteTextFromClipboardFirefoxCallback = () => { };
-
-    function init() {
-        //NOTE: If readText is not available, we are going to assume this is Firefox.
-        if (navigator.clipboard.readText !== undefined) {
-            return;
-        }
-
-        pasteTextFromClipboardImplementation = pasteTextFromClipboardFirefox;
-
-        window.addEventListener("bf2042-portal-extensions-paste", async function (message) {
-            pasteTextFromClipboardFirefoxCallback(message.detail);
-        });
-    }
-
-    async function copyTextToClipboard(text) {
-        return await navigator.clipboard.writeText(text);
-    }
-
-    async function copyBlobToClipboard(blobData) {
-        return await navigator.clipboard.write([new ClipboardItem({ [blobData.type]: blobData })]);
-    }
-
-    async function pasteTextFromClipboard() {
-        return await pasteTextFromClipboardImplementation();
-    }
-
-    async function pasteTextFromClipboardDefault() {
-        return await navigator.clipboard.readText();
-    }
-
-    async function pasteTextFromClipboardFirefox() {
-        return new Promise((resolve, reject) => {
-            pasteTextFromClipboardFirefoxCallback = (clipboard) => {
-                if (clipboard) {
-                    resolve(clipboard);
-                }
-                else {
-                    reject();
-                }
-            };
-
-            const event = new Event("bf2042-portal-extensions-paste");
-            document.dispatchEvent(event);
-        });
-    }
-
-    function isCopyBlobToClipboardSupported() {
-        return window.ClipboardItem !== undefined;
-    }
-
-    function logError(message, error) {
-        console.log(`[ERROR] ${message}`, error);
-    }
-
-    function loadFromLocalStorage(key) {
-        const data = localStorage.getItem(key);
-
-        try {
-            if (typeof (data) === "string") {
-                return JSON.parse(data);
-            }
-        }
-        catch (e) {
-            //Do nothing
-        }
-
-        return {};
-    }
-
-    function saveToLocalStorage(key, data) {
-        localStorage.setItem(key, JSON.stringify(data));
-    }
-
-    return {
-        init: init,
-        copyTextToClipboard: copyTextToClipboard,
-        copyBlobToClipboard: copyBlobToClipboard,
-        pasteTextFromClipboard: pasteTextFromClipboard,
-        isCopyBlobToClipboardSupported: isCopyBlobToClipboardSupported,
-        loadFromLocalStorage: loadFromLocalStorage,
-        saveToLocalStorage: saveToLocalStorage,
-        logError: logError
-    }
-})();
-
-BF2042Portal.Shared.init();
-BF2042Portal.Extensions.init();

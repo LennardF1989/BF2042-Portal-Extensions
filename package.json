@@ -9,11 +9,13 @@
         "build:browser:all:nopack": "node build/build.js --nopack",
         "dev:source:browser": "nodemon --ext * --watch src/browser --exec npm run build:browser:all:nopack",
         "dev:source:web": "nodemon --ext * --watch src/web --exec npm run build:web",
-        "dev:server": "live-server --port=1989 --cors --no-browser ."
+        "dev:server": "live-server --port=1989 --cors --no-browser .",
+        "compile": "tsc"
     },
     "dependencies": {
         "archiver": "5.3.1",
         "nodemon": "2.0.20",
-        "live-server": "1.2.1"
+        "live-server": "1.2.1",
+        "typescript": "4.8.4"
     }
 }

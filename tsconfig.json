@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+        "lib": [
+            "dom",
+            "ES2017"
+        ],
+        "target": "ES2017",
+        "sourceMap": true,
+        "outFile": "./dist/latest/app.js"
+    },
+    "include": [
+        "src/web/**/*"
+    ],
+    "exclude": []
+}
