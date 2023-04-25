@@ -1252,24 +1252,19 @@ BF2042Portal.Extensions = (function () {
             "items.toggleToolbox",
             "items.separatorWorkspace",
             "items.exportBlocksWorkspace",
-            "items.importBlocksFromFile",
-            "items.separatorWorkspace",
-            "items.pasteFromClipboard",
+            "items.importBlocksFromFile"
         ];
 
         const optionsBlockMenu = optionsBlock();
         optionsBlockMenu.weight = -99;
         optionsBlockMenu.options = [
             "items.deleteModBlock",
-            "items.jumpToSubRoutine",
             "items.separatorBlock",
             "items.toggleComments",
             "items.toggleInputs",
             "items.toggleCollapse",
             "items.separatorBlock",
-            "items.exportBlocksBlock",
-            "items.separatorBlock",
-            "items.copyToClipboard",
+            "items.exportBlocksBlock"
         ]
 
         registerMenu(optionsWorkspaceMenu);
@@ -1301,7 +1296,10 @@ BF2042Portal.Extensions = (function () {
         const contextMenuStructure = [
             "items.addBlock",
             "menus.optionsWorkspace",
-            "menus.optionsBlock"
+            "menus.optionsBlock",
+            "items.jumpToSubRoutine",
+            "items.copyToClipboard",
+            "items.pasteFromClipboard"
         ];
 
         contextMenuStructure.forEach(function (item) {
