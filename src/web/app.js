@@ -1486,7 +1486,7 @@ BF2042Portal.Extensions = (function () {
         function getTranslation(key) {
             const splitKeys = key.split(".");
 
-            let firstElement = Blockly.Msg[splitKeys[0]];
+            let firstElement = Blockly.Msg.Msg[splitKeys[0]];
 
             for (let index = 1; index < splitKeys.Length; index++) {
                 firstElement = firstElement[splitKeys[index]];
