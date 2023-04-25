@@ -1134,7 +1134,6 @@ BF2042Portal.Extensions = (function () {
         hookBlockDefinitions();
         hookContextMenu();
         hookWorkspaceSvg();
-
         initializeDocumentEvents();
         intializeBlockly();
 
@@ -1190,18 +1189,21 @@ BF2042Portal.Extensions = (function () {
     }
 
     function hookContextMenu() {
-        const originalShow = _Blockly.ContextMenu.show;
-
-        _Blockly.ContextMenu.show = (e, options, rtl) => {
+        if(!_Blockly.getMainWorkspace()){
+            setTimeout(hookContextMenu, 100);
+            return;
+        }
+        const originalShow = _Blockly.getMainWorkspace().showContextMenu
+        _Blockly.getMainWorkspace().showContextMenu = function (e) {
             lastContextMenu = {
-                e,
-                options,
-                rtl
+                e: e,
+                options: _Blockly.ContextMenuRegistry.registry.getContextMenuOptions(
+                    _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE, {workspace: _Blockly.getMainWorkspace()}
+                ),
+                rtl: _Blockly.getMainWorkspace().RTL
             };
-
-            updateMouseCoords(lastContextMenu.e);
-
-            return originalShow(e, options, rtl);
+            updateMouseCoords(e);
+            return originalShow.apply(this, arguments);
         }
     }
 
@@ -1500,7 +1502,6 @@ BF2042Portal.Extensions = (function () {
         let activeBlock;
 
         const workspace = _Blockly.getMainWorkspace();
-
         workspace.addChangeListener(function (e) {
             if (e.type === _Blockly.Events.CLICK || e.type === _Blockly.Events.SELECTED) {
                 if (shiftKey) {
@@ -1564,7 +1565,7 @@ BF2042Portal.Extensions = (function () {
         }
 
         // Gets the x and y position of the cursor relative to the workspace's parent svg element.
-        const mouseXY = _Blockly.utils.mouseToSvg(
+        const mouseXY = _Blockly.browserEvents.mouseToSvg(
             event,
             mainWorkspace.getParentSvg(),
             mainWorkspace.getInverseScreenCTM()
