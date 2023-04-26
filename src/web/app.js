@@ -5,6 +5,8 @@ BF2042Portal.Extensions = (function () {
         menus: {},
         items: {}
     };
+    let blocklyMutationObserver = undefined,
+        blocklyLoaded = false;
 
     const mouseCoords = {
         x: 0,
@@ -1208,16 +1210,38 @@ BF2042Portal.Extensions = (function () {
     }
 
     function hookWorkspaceSvg() {
-        const originalWorkspaceSvg = _Blockly.Workspace.prototype.constructor;
-
-        _Blockly.Workspace.prototype.constructor = function () {
-            originalWorkspaceSvg.apply(this, arguments);
-
-            setTimeout(function () {
+        if(!_Blockly.getMainWorkspace()){
+            setTimeout(hookWorkspaceSvg, 100);
+            return;
+        }
+        setTimeout(
+            function(){
                 initializeWorkspaceEvents();
-
                 BF2042Portal.Plugins.initializeWorkspace();
-            }, 0);
+            }, 2000
+        )
+        if(!blocklyMutationObserver ){
+            const rulesApp = document.getElementsByTagName('app-rules')[0]    
+            blocklyMutationObserver = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === "childList") {
+                        if (!document.getElementsByTagName("app-blockly").length) {
+                            blocklyLoaded = false
+                        } else {
+                            if(!blocklyLoaded){
+                                setTimeout(
+                                    function(){
+                                        initializeWorkspaceEvents();
+                                        BF2042Portal.Plugins.initializeWorkspace();
+                                        blocklyLoaded = true;
+                                    }, 100
+                                )
+                            }
+                        }
+                    }
+                });
+            });
+            blocklyMutationObserver.observe(rulesApp, { attributes: false, childList: true, characterData: false });
         }
     }
 
