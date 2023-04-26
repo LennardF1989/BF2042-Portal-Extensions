@@ -1081,8 +1081,8 @@ BF2042Portal.Extensions = (function () {
             blocks = selectedBlocks;
         }
 
-        if (!blocks && (_Blockly.selected || (scope !== undefined && scope.block))) {
-            blocks = [_Blockly.selected || scope.block];
+        if (!blocks && (_Blockly.getSelected() || (scope !== undefined && scope.block))) {
+            blocks = [_Blockly.getSelected() || scope.block];
         }
 
         return blocks;
