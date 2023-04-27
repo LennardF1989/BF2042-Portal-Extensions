@@ -72,9 +72,9 @@ BF2042Portal.Extensions = (function () {
 
         async function callback() {
             try {
-                let xmlText = await BF2042Portal.Shared.pasteTextFromClipboard();
+                let jsonText = await BF2042Portal.Shared.pasteTextFromClipboard();
 
-                if (!loadXml(xmlText)) {
+                if (!loadJsonText(jsonText)) {
                     alert(errorMessage);
                 }
             }
@@ -931,7 +931,7 @@ BF2042Portal.Extensions = (function () {
                 }
             }
             else {
-                return _Blockly.serialization.workspace.save(_Blockly.getMainWorkspace());
+                return _Blockly.serialization.workspaces.save(_Blockly.getMainWorkspace());
             }
         } catch (e) {
             BF2042Portal.Shared.logError("Failed to save workspace!", e);
@@ -955,6 +955,50 @@ BF2042Portal.Extensions = (function () {
         return false;
     }
 
+    function loadJsonText(jsonText) {
+        try{
+            const json = JSON.parse(jsonText)
+            if(!json.hasOwnProperty('blocks')){
+                BF2042Portal.shared.logError("JSON does not contain blocks!")
+                throw new Error("JSON does not contain blocks!")
+            }
+            const flatJSON = flattenJSON(json)
+            variables = []
+            for(let key in flatJSON){
+                if(flatJSON[key] === 'variableReferenceBlock'){
+                    // blocks.0.inputs.ACTIONS.block.inputs.VALUE-0.block.type remove the .type
+                    // create variable json
+                    // id : "i9Hbb3OYw@)$+K}O6e!B"
+                    // name :  "test"
+                    // type : "Global"
+                    let blockBaseKey = key.slice(0, key.length - 5);
+                    let id = `${blockBaseKey}.fields.VAR.id`,
+                    name = `${blockBaseKey}.fields.VAR.name`,
+                    type = `${blockBaseKey}.fields.VAR.type`
+                    variables.push(
+                        {
+                            id: flatJSON[id],
+                            name: flatJSON[name],
+                            type: flatJSON[type]
+                        }
+                    )
+
+                }
+            }
+            if(variables.length > 0){
+                var_sr = new _Blockly.serialization.variables.VariableSerializer()
+                console.log(flatJSON)
+                var_sr.load(variables, _Blockly.getMainWorkspace())
+            }
+        
+            block_sr = new _Blockly.serialization.blocks.BlockSerializer()
+            block_sr.load(json, _Blockly.getMainWorkspace())
+            return true
+        } catch (e) {
+            BF2042Portal.Shared.logError("Failed to parse JSON!", e);
+        }
+        return false
+    }
     function loadXml(xmlText) {
         try {
             if (!xmlText) {
@@ -1101,6 +1145,31 @@ BF2042Portal.Extensions = (function () {
             callback: () => {}
         }).concat(options), lastContextMenu.rtl);
     }
+
+    function flattenJSON(data) {
+        var result = {};
+        function recurse (cur, prop) {
+            if (Object(cur) !== cur) {
+                result[prop] = cur;
+            } else if (Array.isArray(cur)) {
+                 for(var i=0, l=cur.length; i<l; i++)
+                     recurse(cur[i], prop ? prop+"."+i : ""+i);
+                if (l == 0)
+                    result[prop] = [];
+            } else {
+                var isEmpty = true;
+                for (var p in cur) {
+                    isEmpty = false;
+                    recurse(cur[p], prop ? prop+"."+p : p);
+                }
+                if (isEmpty)
+                    result[prop] = {};
+            }
+        }
+        recurse(data, "");
+        return result;
+    }
+    
 
     //Initialize functions
     function init() {
