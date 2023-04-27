@@ -961,8 +961,13 @@ BF2042Portal.Extensions = (function () {
         const workspace = _Blockly.getMainWorkspace();
 
         try {
+            // support old format
+            if(data.hasOwnProperty('mainWorkspace')){
+                _Blockly.Xml.domToVariables(_Blockly.Xml.textToDom(data.variables), workspace);
+                _Blockly.Xml.domToWorkspace(_Blockly.Xml.textToDom(data.mainWorkspace), workspace);
+                return true;
+            }
             _Blockly.serialization.workspaces.load(data, workspace)
-
             return true;
         } catch (e) {
             BF2042Portal.Shared.logError("Failed to load workspace from JSON!", e);
