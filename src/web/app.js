@@ -72,13 +72,17 @@ BF2042Portal.Extensions = (function () {
 
         async function callback() {
             try {
-                let jsonText = await BF2042Portal.Shared.pasteTextFromClipboard();
-
-                if (!loadJsonText(jsonText)) {
-                    alert(errorMessage);
+                let rawText = await BF2042Portal.Shared.pasteTextFromClipboard();
+                if(!rawText.startsWith("<block")) {
+                    if (!loadJsonText(rawText)) {
+                        alert(errorMessage);
+                    }                    
+                } else {
+                    if (!loadXml(rawText)) {
+                        alert(errorMessage);
+                    }            
                 }
-            }
-            catch (e) {
+            } catch (e) {
                 BF2042Portal.Shared.logError(errorMessage, e);
 
                 alert(errorMessage);
