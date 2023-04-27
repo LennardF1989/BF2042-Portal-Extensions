@@ -43,7 +43,7 @@ BF2042Portal.Extensions = (function () {
                     return;
                 }
 
-                await BF2042Portal.Shared.copyTextToClipboard(JSON.stringify(json));
+                await BF2042Portal.Shared.copyTextToClipboard(JSON.stringify(json, null, 4));
             }
             catch (e) {
                 BF2042Portal.Shared.logError(errorMessage, e);
@@ -654,7 +654,7 @@ BF2042Portal.Extensions = (function () {
         }
 
         const saveTemplateAsFile = (filename, dataObjToWrite) => {
-            const blob = new Blob([JSON.stringify(dataObjToWrite)], { type: "text/json" });
+            const blob = new Blob([JSON.stringify(dataObjToWrite, null, 4)], { type: "text/json" });
             const link = document.createElement("a");
         
             link.download = filename;
