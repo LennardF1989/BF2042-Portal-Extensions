@@ -961,8 +961,7 @@ BF2042Portal.Extensions = (function () {
         const workspace = _Blockly.getMainWorkspace();
 
         try {
-            _Blockly.Xml.domToVariables(variables, workspace);
-            _Blockly.Xml.domToWorkspace(_Blockly.Xml.textToDom(data.mainWorkspace), workspace);
+            _Blockly.serialization.workspaces.load(data, workspace)
 
             return true;
         } catch (e) {
