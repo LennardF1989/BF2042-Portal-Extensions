@@ -35,15 +35,15 @@ BF2042Portal.Extensions = (function () {
         async function callback(scope) {
             try {
                 const blocks = getSelectedBlocks(scope);
-                const xmlText = saveXml(blocks);
+                const json = saveJson(blocks);
 
-                if (!xmlText) {
+                if (!json) {
                     alert(errorMessage);
 
                     return;
                 }
 
-                await BF2042Portal.Shared.copyTextToClipboard(xmlText);
+                await BF2042Portal.Shared.copyTextToClipboard(JSON.stringify(json));
             }
             catch (e) {
                 BF2042Portal.Shared.logError(errorMessage, e);
@@ -914,32 +914,24 @@ BF2042Portal.Extensions = (function () {
     }
 
     //Private functions
-    function saveXml(blocks) {
-        const workspace = _Blockly.getMainWorkspace();
+    function saveJson(blocks) {
 
         try {
-            let xmlText = "";
+            const blockState = []
 
             if (blocks && blocks.length > 0) {
                 for (let i = 0; i < blocks.length; i++) {
-                    xmlText += blockToXml(blocks[i]);
+                    blockState.push(blockToJson(blocks[i]))
                 }
-
-                return xmlText;
+                if(blockState.length > 0){
+                    return {
+                        'languageVersion': 0,  // Currently unused.
+                        'blocks': blockState,
+                    };
+                }
             }
             else {
-                let xmlDom = _Blockly.Xml.workspaceToDom(workspace, true);
-
-                const variablesXml = xmlDom.querySelector("variables");
-
-                if (variablesXml) {
-                    xmlDom.removeChild(variablesXml);
-                }
-
-                return _Blockly.Xml
-                    .domToText(xmlDom)
-                    .replace("<xml xmlns=\"https://developers.google.com/blockly/xml\">", "")
-                    .replace("</xml>", "");
+                return _Blockly.serialization.workspace.save(_Blockly.getMainWorkspace());
             }
         } catch (e) {
             BF2042Portal.Shared.logError("Failed to save workspace!", e);
@@ -1061,13 +1053,8 @@ BF2042Portal.Extensions = (function () {
         return false;
     }
 
-    function blockToXml(block) {
-        const xmlDom = _Blockly.Xml.blockToDomWithXY(block, true);
-        _Blockly.Xml.deleteNext(xmlDom);
-
-        const xmlText = _Blockly.Xml.domToText(xmlDom).replace("xmlns=\"https://developers.google.com/blockly/xml\"", "");
-
-        return xmlText;
+    function blockToJson(block) {
+        return _Blockly.serialization.blocks.save(block, {addCoordinates: true});
     }
 
     //Based on: https://stackoverflow.com/questions/32589197/how-can-i-capitalize-the-first-letter-of-each-word-in-a-string-using-javascript
