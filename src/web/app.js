@@ -451,9 +451,9 @@ BF2042Portal.Extensions = (function () {
 
         async function callback(scope) {
             const menuItems = [{
-                text: "XML",
+                text: "JSON",
                 enabled: true,
-                callback: () => exportToXml(scope)
+                callback: () => exportToJson(scope)
             },
             {
                 text: "SVG",
@@ -477,19 +477,17 @@ BF2042Portal.Extensions = (function () {
             showContextMenuWithBack(menuItems);
         }
 
-        async function exportToXml(scope) {
+        async function exportToJson(scope) {
             const blocks = getSelectedBlocks(scope);
-            const xmlText = saveXml(blocks);
+            const json = saveJson(blocks);
 
-            if (!xmlText) {
-                alert("Failed to export XML!");
+            if (!json) {
+                alert("Failed to export JSON!");
 
                 return;
             }
 
-            const dataUri = `data:application/xml;charset=utf-8,${encodeURIComponent(xmlText)}`;
-
-            downloadFile(dataUri, "workspace.xml");
+            saveTemplateAsFile("workspace.json", json);
         }
 
         async function exportToSvg(scope) {
@@ -654,6 +652,25 @@ BF2042Portal.Extensions = (function () {
 
             return promise;
         }
+
+        const saveTemplateAsFile = (filename, dataObjToWrite) => {
+            const blob = new Blob([JSON.stringify(dataObjToWrite)], { type: "text/json" });
+            const link = document.createElement("a");
+        
+            link.download = filename;
+            link.href = window.URL.createObjectURL(blob);
+            link.dataset.downloadurl = ["text/json", link.download, link.href].join(":");
+        
+            const evt = new MouseEvent("click", {
+                view: window,
+                bubbles: true,
+                cancelable: true,
+            });
+        
+            link.dispatchEvent(evt);
+            link.remove()
+        };
+        
 
         function downloadFile(fileData, fileName) {
             const linkElement = document.createElement("a");
