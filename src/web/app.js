@@ -1012,7 +1012,6 @@ BF2042Portal.Extensions = (function () {
             }
             if(variables.length > 0){
                 var_sr = new _Blockly.serialization.variables.VariableSerializer()
-                console.log(flatJSON)
                 var_sr.load(variables, _Blockly.getMainWorkspace())
             }
         
@@ -1614,7 +1613,7 @@ BF2042Portal.Extensions = (function () {
                         return;
                     }
 
-                    const block = workspace.blockDB_[e.blockId];
+                    const block = workspace.getBlockById(e.blockId);
 
                     const selectedIndex = selectedBlocks.indexOf(block);
 
@@ -1630,10 +1629,12 @@ BF2042Portal.Extensions = (function () {
                     }
                 }
                 else {
-                    selectedBlocks.length = 0;;
-
-                    for (const blockID in workspace.blockDB_) {
-                        workspace.blockDB_[blockID].setHighlighted(false);
+                    // only run if there are selected blocks
+                    if(selectedBlocks.length > 0){
+                        selectedBlocks.length = 0;
+                        workspace.getAllBlocks().forEach(block => {
+                            block.setHighlighted(false);
+                        })
                     }
                 }
             }
