@@ -1123,7 +1123,7 @@ BF2042Portal.Extensions = (function () {
     }
 
     function blockToJson(block) {
-        return _Blockly.serialization.blocks.save(block, {addCoordinates: true});
+        return _Blockly.serialization.blocks.save(block, {addCoordinates: false, addNextBlocks: false});
     }
 
     //Based on: https://stackoverflow.com/questions/32589197/how-can-i-capitalize-the-first-letter-of-each-word-in-a-string-using-javascript
