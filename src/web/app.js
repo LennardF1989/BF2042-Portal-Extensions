@@ -43,7 +43,7 @@ BF2042Portal.Extensions = (function () {
                     return;
                 }
 
-                await BF2042Portal.Shared.copyTextToClipboard(JSON.stringify(json, null, 4));
+                await BF2042Portal.Shared.copyTextToClipboard(JSON.stringify(json, null, 1));
             }
             catch (e) {
                 BF2042Portal.Shared.logError(errorMessage, e);
