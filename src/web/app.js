@@ -1016,8 +1016,48 @@ BF2042Portal.Extensions = (function () {
             }
         
             block_sr = new _Blockly.serialization.blocks.BlockSerializer()
-            json.blocks[0]['x'] = mouseCoords.x
-            json.blocks[0]['y'] = mouseCoords.y
+            
+            //Determine a bounding box
+            let minX = Number.MAX_SAFE_INTEGER,
+                minY = Number.MAX_SAFE_INTEGER
+
+            json.blocks.forEach(block => {
+                const x = parseInt(block.x),
+                    y = parseInt(block.y);
+
+                if (!minX || x < minX) {
+                    minX = x;
+                }
+                if (!minY || y < minY) {
+                    minY = y;
+                }
+            })
+
+            //NOTE: Transform blocks to the minimum coords, then move them to their target position.
+            json.blocks.forEach(block => {
+
+                const x = parseInt(block.x);
+                const y = parseInt(block.y);
+
+                if (x == minX) {
+                    block.x = mouseCoords.x;
+                }
+                else {
+                    block.x = (x - minX) + mouseCoords.x;
+                }
+
+                if (y == minY) {
+                    block.y = mouseCoords.y;
+                }
+                else {
+                    block.y = (y - minY) + mouseCoords.y;
+                }
+                block.x = `${block.x}`
+                block.y = `${block.y}`
+            })
+            
+            // json.blocks[0]['x'] = mouseCoords.x
+            // json.blocks[0]['y'] = mouseCoords.y
 
             block_sr.load(json, _Blockly.getMainWorkspace())
             return true
