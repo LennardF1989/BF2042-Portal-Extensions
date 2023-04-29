@@ -5,8 +5,6 @@ BF2042Portal.Extensions = (function () {
         menus: {},
         items: {}
     };
-    let blocklyMutationObserver = undefined,
-        blocklyLoaded = false;
 
     const mouseCoords = {
         x: 0,
