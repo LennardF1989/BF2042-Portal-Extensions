@@ -1016,6 +1016,9 @@ BF2042Portal.Extensions = (function () {
             }
         
             block_sr = new _Blockly.serialization.blocks.BlockSerializer()
+            json.blocks[0]['x'] = mouseCoords.x
+            json.blocks[0]['y'] = mouseCoords.y
+
             block_sr.load(json, _Blockly.getMainWorkspace())
             return true
         } catch (e) {
@@ -1122,7 +1125,7 @@ BF2042Portal.Extensions = (function () {
     }
 
     function blockToJson(block) {
-        return _Blockly.serialization.blocks.save(block, {addCoordinates: false, addNextBlocks: false});
+        return _Blockly.serialization.blocks.save(block, {addCoordinates: true, addNextBlocks: false});
     }
 
     //Based on: https://stackoverflow.com/questions/32589197/how-can-i-capitalize-the-first-letter-of-each-word-in-a-string-using-javascript
