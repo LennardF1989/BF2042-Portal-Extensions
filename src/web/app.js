@@ -1197,7 +1197,6 @@ BF2042Portal.Extensions = (function () {
         return result;
     }
     
-
     //Initialize functions
     function init() {
         window.addEventListener("bf2042-portal-extensions-init", async function (message) {
@@ -1215,16 +1214,39 @@ BF2042Portal.Extensions = (function () {
             });
         });
 
+        hookBlocklyInject();     
         cssFixes();
         hookBlockDefinitions();
         hookContextMenu();
-        hookWorkspaceSvg();
         initializeDocumentEvents();
         intializeBlockly();
 
         const event = new Event("bf2042-portal-extensions-init");
-        document.dispatchEvent(event);
+        document.dispatchEvent(event);          
+
     }
+
+    function waitForMainWorkspace(){
+        if (!_Blockly.getMainWorkspace()){
+            setTimeout(waitForMainWorkspace, 100);
+        } else {
+            setTimeout(() => {
+                initializeWorkspaceEvents();
+                BF2042Portal.Plugins.initializeWorkspace();    
+            }, 1000)
+        }
+    }
+
+    function hookBlocklyInject() {
+        const originalInject = _Blockly.inject;
+        _Blockly.inject = function () {
+            console.debug('Blockly injected with', arguments)
+            const retVal = originalInject(...arguments);
+            waitForMainWorkspace();
+            return  retVal;
+        }            
+    }
+
 
     function cssFixes() {
         const styleElement = document.createElement("style");
@@ -1286,42 +1308,6 @@ BF2042Portal.Extensions = (function () {
             };
             updateMouseCoords(e);
             return originalShow.apply(this, arguments);
-        }
-    }
-
-    function hookWorkspaceSvg() {
-        if(!_Blockly.getMainWorkspace()){
-            setTimeout(hookWorkspaceSvg, 100);
-            return;
-        }
-        setTimeout(
-            function(){
-                initializeWorkspaceEvents();
-                BF2042Portal.Plugins.initializeWorkspace();
-            }, 2000
-        )
-        if(!blocklyMutationObserver ){
-            const rulesApp = document.getElementsByTagName('app-rules')[0]    
-            blocklyMutationObserver = new MutationObserver(function(mutations) {
-                mutations.forEach(function(mutation) {
-                    if (mutation.type === "childList") {
-                        if (!document.getElementsByTagName("app-blockly").length) {
-                            blocklyLoaded = false
-                        } else {
-                            if(!blocklyLoaded){
-                                setTimeout(
-                                    function(){
-                                        initializeWorkspaceEvents();
-                                        BF2042Portal.Plugins.initializeWorkspace();
-                                        blocklyLoaded = true;
-                                    }, 100
-                                )
-                            }
-                        }
-                    }
-                });
-            });
-            blocklyMutationObserver.observe(rulesApp, { attributes: false, childList: true, characterData: false });
         }
     }
 
