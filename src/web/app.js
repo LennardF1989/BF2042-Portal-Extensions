@@ -1257,19 +1257,16 @@ BF2042Portal.Extensions = (function () {
 
     function hookBlockDefinitions() {
         const originalFunction = console.debug;
-
         console.debug = function () {
-            hookBlockDefinitions.apply(this, arguments);
-
             if (arguments.length === 2 && arguments[0] === "Frostbite Block Definitions") {
                 blockDefinitions = arguments[1];
-
                 console.log(blockDefinitions);
-
-                initializeBlocks();
-
+                if(blockLookup.length === 0){
+                    initializeBlocks();
+                }
                 console.debug = originalFunction;
             }
+            
         }
     }
 
