@@ -1634,10 +1634,10 @@ BF2042Portal.Extensions = (function () {
                 else {
                     // only run if there are selected blocks
                     if(selectedBlocks.length > 0){
-                        selectedBlocks.length = 0;
-                        workspace.getAllBlocks().forEach(block => {
+                        selectedBlocks.forEach(block => {
                             block.setHighlighted(false);
                         })
+                        selectedBlocks.length = 0;
                     }
                 }
             }
