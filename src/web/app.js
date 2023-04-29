@@ -1217,7 +1217,6 @@ BF2042Portal.Extensions = (function () {
         hookBlocklyInject();     
         cssFixes();
         hookBlockDefinitions();
-        hookContextMenu();
         initializeDocumentEvents();
         intializeBlockly();
 
@@ -1230,10 +1229,11 @@ BF2042Portal.Extensions = (function () {
         if (!_Blockly.getMainWorkspace()){
             setTimeout(waitForMainWorkspace, 100);
         } else {
+            hookContextMenu(); // as depends on workspace
             setTimeout(() => {
                 initializeWorkspaceEvents();
                 BF2042Portal.Plugins.initializeWorkspace();    
-            }, 1000)
+            }, 1000) // todo: discuss the optimal time to wait
         }
     }
 
@@ -1293,21 +1293,19 @@ BF2042Portal.Extensions = (function () {
     }
 
     function hookContextMenu() {
-        if(!_Blockly.getMainWorkspace()){
-            setTimeout(hookContextMenu, 100);
-            return;
-        }
-        const originalShow = _Blockly.getMainWorkspace().showContextMenu
-        _Blockly.getMainWorkspace().showContextMenu = function (e) {
+        console.log("Hooking context menu");
+        let workspace = _Blockly.getMainWorkspace();
+        const originalShow = workspace.showContextMenu
+        workspace.showContextMenu = function (e) {
             lastContextMenu = {
                 e: e,
                 options: _Blockly.ContextMenuRegistry.registry.getContextMenuOptions(
                     _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE, {workspace: _Blockly.getMainWorkspace()}
                 ),
-                rtl: _Blockly.getMainWorkspace().RTL
+                rtl: workspace.RTL
             };
             updateMouseCoords(e);
-            return originalShow.apply(this, arguments);
+            return originalShow.apply(this,arguments);
         }
     }
 
