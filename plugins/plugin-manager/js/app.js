@@ -65,9 +65,6 @@ app.config(function ($routeProvider) {
         .when("/plugins", {
             templateUrl: "views/plugins.html"
         })
-        .when("/snippets", {
-            templateUrl: "views/snippets.html"
-        })
         .otherwise({
             redirectTo: "/plugins"
         });
@@ -202,7 +199,6 @@ app.controller("PluginsController", function ($scope, api) {
 
         config.plugins.push({
             enabled: plugin ? plugin.enabled : true,
-            liveReload: plugin ? plugin.liveReload : false,
             baseUrl: vm.pluginBaseUrl,
             manifestUrl: vm.pluginManifestUrl.trim(),
             manifest: vm.pluginManifest

@@ -2,15 +2,14 @@
     "name": "bf2042-portal-extensions",
     "private": false,
     "scripts": {
-        "build:web": "node build/web.js",
+        "build:web": "tsc",
         "build:browser:chromium": "node build/chromium.js",
         "build:browser:firefox": "node build/firefox.js",
         "build:browser:all": "node build/build.js",
         "build:browser:all:nopack": "node build/build.js --nopack",
         "dev:source:browser": "nodemon --ext * --watch src/browser --exec npm run build:browser:all:nopack",
         "dev:source:web": "nodemon --ext * --watch src/web --exec npm run build:web",
-        "dev:server": "live-server --port=1989 --cors --no-browser .",
-        "compile": "tsc"
+        "dev:server": "live-server --port=1989 --cors --no-browser ."
     },
     "dependencies": {
         "archiver": "5.3.1",

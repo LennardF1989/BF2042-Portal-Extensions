@@ -26,7 +26,7 @@ function initEvents() {
     document.addEventListener(EVENT_EXTENSIONS_INIT, async function () {
         dispatchWebEvent(EVENT_EXTENSIONS_INIT, {
             version: manifest.version,
-            extensionUrl: getSelectedVersionURL()
+            manifest: getSelectedVersion()
         });
     });
     
@@ -65,10 +65,10 @@ async function getConfig() {
     return config || {};
 }
 
-function getSelectedVersionURL() {
+function getSelectedVersion() {
     const version = config.versions[config.selectedVersion];
     
-    return version ? version.url : undefined;
+    return version ? version : undefined;
 }
 
 async function init() {

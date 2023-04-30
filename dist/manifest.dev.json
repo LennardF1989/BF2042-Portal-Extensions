@@ -2,7 +2,11 @@
     "versions": {
         "latest": {
             "name": "Latest (bleeding edge)",
-            "url": "http://localhost:1989/dist/latest/app.js"
+            "url": "http://localhost:1989/dist/latest/app.js",
+            "pluginManager": {
+                "baseUrl": "http://localhost:1989/plugins/plugin-manager",
+                "main": "index.js"
+            }
         }
     }
 }

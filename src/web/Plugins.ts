@@ -50,36 +50,38 @@ BF2042Portal.Plugins = (function () {
     function init(data) {
         initData = data;
 
-        loadPlugins(data.plugins);
-    }
-
-    async function loadPlugins(plugins) {
-        for (let i = 0; i < plugins.length; i++) {
-            const pluginData = plugins[i];
-
-            loadPlugin(pluginData);
+        if(data.pluginManager) {
+            loadPluginManager(data.pluginManager);   
         }
     }
 
-    async function loadPlugin(pluginData) {
+    function loadPluginManager(pluginManager) {
+        loadPlugin({
+            baseUrl: pluginManager.baseUrl,
+            manifest: {
+                id: "plugin-manager",
+                loadAsModule: pluginManager.loadAsModule || false,
+                main: pluginManager.main
+            }
+        });
+    }
+
+    function loadPlugin(pluginData) {
         try {
             const plugin = new Plugin(pluginData.baseUrl, pluginData.manifest);
             plugins[pluginData.manifest.id] = plugin;
 
-            if (pluginData.liveReload) {
-                const scriptElement = document.createElement("script");
-                scriptElement.setAttribute("type", "text/javascript");
-                scriptElement.setAttribute("src", plugin.getUrl(pluginData.manifest.main));
+            const scriptElement = document.createElement("script");
+            scriptElement.setAttribute("type", pluginData.manifest.loadAsModule 
+                ? "module" 
+                : "text/javascript"
+            );
+            scriptElement.setAttribute("src", plugin.getUrl(pluginData.manifest.main));
+            scriptElement.addEventListener("load", function() {
+                plugin.initializeWorkspace();
+            });
 
-                document.body.appendChild(scriptElement);
-            }
-            else if (pluginData.mainContent) {
-                const scriptElement = document.createElement("script");
-                scriptElement.setAttribute("type", "text/javascript");
-                scriptElement.innerHTML = `${pluginData.mainContent}\n//# sourceURL=${pluginData.manifest.id}.js`;
-
-                document.body.appendChild(scriptElement);
-            }
+            document.body.appendChild(scriptElement);
         }
         catch (e) {
             BF2042Portal.Shared.logError(`Failed to load plugin '${pluginData.manifest.name}''`, e);
@@ -105,6 +107,7 @@ BF2042Portal.Plugins = (function () {
     return {
         init: init,
         initializeWorkspace: initializeWorkspace,
-        getPlugin: getPlugin
+        getPlugin: getPlugin,
+        loadPlugin: loadPlugin
     };
 })();

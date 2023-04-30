@@ -1,28 +1,5 @@
 (async function () {       
     const plugin = BF2042Portal.Plugins.getPlugin("plugin-manager");
-    plugin.initializeWorkspace = initializeWorkspace;
-
-    let initializedWorkspace = false;
-
-    const plugins = {};
-
-    //NOTE: Represents a Plugin-class
-    function Plugin(baseUrl, manifest) {
-        this.baseUrl = baseUrl;
-        this.manifest = manifest;
-
-        this.initializeWorkspace = function() {
-            //Do nothing
-        }
-
-        this.getUrl = function (relativeUrl) {
-            return `${baseUrl}/${relativeUrl}`;
-        }
-
-        this.getSelectedBlocks = function () {
-            return plugin.getSelectedBlocks();
-        }
-    }
 
     window.addEventListener("message", (e) => {
         if(!e.data || e.data.type !== "plugin-manager") {
@@ -42,15 +19,14 @@
             saveConfig(eventData.payload);
         }
         else if(eventData.action === "close") {
-            const iframe = document.getElementById("plugin-manager-iframe");
+            const pluginManagerDiv = document.getElementById("plugin-manager");
             
-            if(iframe) {
-                document.body.removeChild(iframe);
+            if(pluginManagerDiv) {
+                document.body.removeChild(pluginManagerDiv);
             }
         }
     });
 
-    hijackGetPlugin();
     initializePlugins();
     initializeBlockly();
 
@@ -93,53 +69,7 @@
                 continue;
             }
 
-            loadPlugin(pluginData);
-        }
-    }
-
-    async function loadPlugin(pluginData) {
-        try {
-            const plugin = new Plugin(pluginData.baseUrl, pluginData.manifest);
-            plugins[pluginData.manifest.id] = plugin;
-
-            const scriptElement = document.createElement("script");
-            scriptElement.setAttribute("type", "text/javascript");
-            scriptElement.setAttribute("src", plugin.getUrl(pluginData.manifest.main));
-
-            scriptElement.onload = function() {
-                if(!initializedWorkspace) {
-                    return;
-                }
-                
-                plugin.initializeWorkspace();
-            }
-
-            document.body.appendChild(scriptElement);
-        }
-        catch (e) {
-            BF2042Portal.Shared.logError(`Failed to load plugin '${pluginData.manifest.name}''`, e);
-        }
-    }
-
-    function initializeWorkspace() {
-        initializedWorkspace = true;
-
-        for(const pluginId in plugins) {
-            plugins[pluginId].initializeWorkspace();
-        }
-    }
-
-    function hijackGetPlugin() {
-        const originalGetPlugin = BF2042Portal.Plugins.getPlugin;
-
-        BF2042Portal.Plugins.getPlugin = function(id) {
-            const plugin = plugins[id];
-
-            if (plugin) {
-                return plugin;
-            }            
-
-            return originalGetPlugin(id);
+            BF2042Portal.Plugins.loadPlugin(pluginData);
         }
     }
 
@@ -150,18 +80,35 @@
             }
         
             async function callback() {
-                let iframe = document.getElementById("plugin-manager-iframe");
+                let pluginManagerDiv = document.getElementById("plugin-manager");
 
-                if(iframe) {
+                if(pluginManagerDiv) {
                     return;
                 }
 
-                iframe = document.createElement("iframe");
+                pluginManagerDiv = document.createElement("div");
+                pluginManagerDiv.style = `
+                    background-color: rgba(0, 0, 0, 0.8); 
+                    position: absolute; 
+                    z-index: 9999; 
+                    width: 100vw; height: 
+                    100vh; 
+                    top: 0;
+                    left: 0; 
+                    display: flex; 
+                    align-items: center; 
+                    justify-content: center;
+                `;
+                pluginManagerDiv.id = "plugin-manager";
+
+                const iframe = document.createElement("iframe");
                 iframe.src = plugin.getUrl("index.html");
-                iframe.style = "position: absolute; z-index: 9999; width: 100vw; height: 100vh; top: 0; left: 0; border: 0;";
+                iframe.style = "width: 90vw; height: 90vh; border: 0; border-radius: 10px";
                 iframe.id = "plugin-manager-iframe";
 
-                document.body.appendChild(iframe);
+                pluginManagerDiv.appendChild(iframe);
+
+                document.body.appendChild(pluginManagerDiv);
             }
         
             return {
@@ -174,6 +121,10 @@
             };
         })();
     
-        _Blockly.ContextMenuRegistry.registry.register(pluginManager);
+        plugin.registerItem(pluginManager);
+
+        const optionsWorkspaceMenu = _Blockly.ContextMenuRegistry.registry.getItem("optionsWorkspace");
+        optionsWorkspaceMenu.options.unshift("items.separatorWorkspace");
+        optionsWorkspaceMenu.options.unshift("items.pluginManager");
     }
 })();

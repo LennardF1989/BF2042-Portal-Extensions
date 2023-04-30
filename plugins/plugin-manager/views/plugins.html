@@ -49,12 +49,6 @@
                                 <td class="align-middle">
                                     <a ng-href="{{plugin.manifestUrl}}" target="_blank" rel="noopener">{{plugin.manifestUrl}}</a>
                                 </td>
-                                <td class="align-middle" ng-if="vm.developerMode">
-                                    <a class="btn" ng-click="vm.toggleLiveReload(plugin)">
-                                        <span class="bi bi-toggle-off" ng-if="!plugin.liveReload"></span>
-                                        <span class="bi bi-toggle-on" ng-if="plugin.liveReload"></span>
-                                    </a>
-                                </td>
                                 <td class="align-middle">
                                     <a ng-href="{{plugin.manifest.homepage}}" class="btn" target="_blank" 
                                         ng-if="plugin.manifest.homepage"

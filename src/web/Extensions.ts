@@ -339,7 +339,7 @@ BF2042Portal.Extensions = (function () {
     }
 
     function openDocumentation() {
-        const documentationUrl = "https://docs.bfportal.gg/docs/generated";
+        const documentationUrl = "https://docs.bfportal.gg/blocks";
 
         function precondition() {
             return "enabled";
@@ -1082,8 +1082,8 @@ BF2042Portal.Extensions = (function () {
             blocks = selectedBlocks;
         }
 
-        if (!blocks && (_Blockly.selected || (scope !== undefined && scope.block))) {
-            blocks = [_Blockly.selected || scope.block];
+        if (!blocks && (_Blockly.getSelected() || (scope !== undefined && scope.block))) {
+            blocks = [_Blockly.getSelected() || scope.block];
         }
 
         return blocks;
@@ -1119,7 +1119,7 @@ BF2042Portal.Extensions = (function () {
         cssFixes();
         
         hookContextMenu();
-        hookWorkspaceSvg();
+        hookBlockly();
 
         initializeBlocks(BF2042Portal.Startup.getBlockDefinitions());
         initializeDocumentEvents();
@@ -1135,7 +1135,7 @@ BF2042Portal.Extensions = (function () {
                 createMenu: createMenu
             },
             version: BF2042Portal.Startup.getVersion(),
-            plugins: []
+            pluginManager: BF2042Portal.Startup.getManifest().pluginManager
         });
     }
 
@@ -1169,33 +1169,74 @@ BF2042Portal.Extensions = (function () {
     }
 
     function hookContextMenu() {
-        const originalShow = _Blockly.ContextMenu.show;
+        const workspace = _Blockly.getMainWorkspace();
 
-        _Blockly.ContextMenu.show = (e, options, rtl) => {
+        const workspacePrototype = Object.getPrototypeOf(workspace);
+        const originalWorkspaceShowContextMenu = workspacePrototype.showContextMenu;
+
+        workspacePrototype.showContextMenu = function (e) {
             lastContextMenu = {
-                e,
-                options,
-                rtl
+                e: e,
+                options: _Blockly.ContextMenuRegistry.registry.getContextMenuOptions(
+                    _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE, 
+                    {
+                        workspace: this
+                    }
+                ),
+                rtl: this.RTL
             };
 
-            updateMouseCoords(lastContextMenu.e);
+            updateMouseCoords(e);
 
-            return originalShow(e, options, rtl);
+            return originalWorkspaceShowContextMenu.apply(this,arguments);
+        }
+
+        const blockPrototype = Object.getPrototypeOf(workspace.getTopBlocks()[0])
+        const originalBlockShowContextMenu = blockPrototype.showContextMenu;
+
+        blockPrototype.showContextMenu = function (e) {
+            lastContextMenu = {
+                e: e,
+                options: _Blockly.ContextMenuRegistry.registry.getContextMenuOptions(
+                    _Blockly.ContextMenuRegistry.ScopeType.BLOCK, 
+                    {
+                        block: this
+                    }
+                ),
+                rtl: this.RTL
+            };
+
+            updateMouseCoords(e);
+
+            return originalBlockShowContextMenu.apply(this,arguments);
         }
     }
 
-    function hookWorkspaceSvg() {
-        const originalWorkspaceSvg = _Blockly.Workspace.prototype.constructor;
+    function hookBlockly() {
+        function initializeWorkspace(workspace) {
+            //TODO: Properly migrate to JSON instead of XML
+            hotfixDomMutations();
 
-        _Blockly.Workspace.prototype.constructor = function () {
-            originalWorkspaceSvg.apply(this, arguments);
+            initializeWorkspaceEvents(workspace);
 
+            //NOTE: Wait for the current JavaScript frame to end, then fire the event for plugins.
             setTimeout(function () {
-                initializeWorkspaceEvents();
-
                 BF2042Portal.Plugins.initializeWorkspace();
             }, 0);
         }
+
+        //NOTE: We have to hook the inject method as it's called whenever the user switches to the Rules Editor.
+        const blockly = _Blockly.inject;
+
+        _Blockly.inject = function () {
+            const workspace = blockly.apply(this, arguments);
+
+            initializeWorkspace(workspace);
+
+            return workspace;
+        }
+
+        initializeWorkspace(_Blockly.getMainWorkspace());
     }
 
     function initializeDocumentEvents() {
@@ -1210,8 +1251,8 @@ BF2042Portal.Extensions = (function () {
 
     function initializeBlockly() {
         //NOTE: Register existing items
-        for(const key in _Blockly.ContextMenuRegistry.registry.registry_) {
-            registerItem(_Blockly.ContextMenuRegistry.registry.registry_[key]);
+        for(const value of _Blockly.ContextMenuRegistry.registry.registry_.values()) {
+            registerItem(value);
         }
 
         //NOTE: Delete existing items
@@ -1231,24 +1272,19 @@ BF2042Portal.Extensions = (function () {
             "items.toggleToolbox",
             "items.separatorWorkspace",
             "items.exportBlocksWorkspace",
-            "items.importBlocksFromFile",
-            "items.separatorWorkspace",
-            "items.pasteFromClipboard",
+            "items.importBlocksFromFile"
         ];
 
         const optionsBlockMenu = optionsBlock();
         optionsBlockMenu.weight = -99;
         optionsBlockMenu.options = [
             "items.deleteModBlock",
-            "items.jumpToSubRoutine",
             "items.separatorBlock",
             "items.toggleComments",
             "items.toggleInputs",
             "items.toggleCollapse",
             "items.separatorBlock",
-            "items.exportBlocksBlock",
-            "items.separatorBlock",
-            "items.copyToClipboard",
+            "items.exportBlocksBlock"
         ]
 
         registerMenu(optionsWorkspaceMenu);
@@ -1280,8 +1316,13 @@ BF2042Portal.Extensions = (function () {
         const contextMenuStructure = [
             "items.addBlock",
             "menus.optionsWorkspace",
-            "menus.optionsBlock"
+            "menus.optionsBlock",
+            "items.jumpToSubRoutine",
+            "items.copyToClipboard",
+            "items.pasteFromClipboard"
         ];
+
+        //TODO: Give plugins a chance to modify this
 
         contextMenuStructure.forEach(function (item) {
             let menuItem;
@@ -1465,7 +1506,7 @@ BF2042Portal.Extensions = (function () {
         function getTranslation(key) {
             const splitKeys = key.split(".");
 
-            let firstElement = Blockly.Msg[splitKeys[0]];
+            let firstElement = Blockly.Msg.Msg[splitKeys[0]];
 
             for (let index = 1; index < splitKeys.Length; index++) {
                 firstElement = firstElement[splitKeys[index]];
@@ -1475,12 +1516,10 @@ BF2042Portal.Extensions = (function () {
         }
     }
 
-    function initializeWorkspaceEvents() {
+    function initializeWorkspaceEvents(workspace) {
         let deltaX;
         let deltaY;
         let activeBlock;
-
-        const workspace = _Blockly.getMainWorkspace();
 
         workspace.addChangeListener(function (e) {
             if (e.type === _Blockly.Events.CLICK || e.type === _Blockly.Events.SELECTED) {
@@ -1489,7 +1528,7 @@ BF2042Portal.Extensions = (function () {
                         return;
                     }
 
-                    const block = workspace.blockDB_[e.blockId];
+                    const block = workspace.getBlockById(e.blockId);
 
                     const selectedIndex = selectedBlocks.indexOf(block);
 
@@ -1504,12 +1543,12 @@ BF2042Portal.Extensions = (function () {
                         block.setHighlighted(false);
                     }
                 }
-                else {
-                    selectedBlocks.length = 0;;
+                else if(selectedBlocks.length > 0) {
+                    selectedBlocks.forEach(block => {
+                        block.setHighlighted(false);
+                    });
 
-                    for (const blockID in workspace.blockDB_) {
-                        workspace.blockDB_[blockID].setHighlighted(false);
-                    }
+                    selectedBlocks.length = 0;
                 }
             }
             else if (e.type === _Blockly.Events.BLOCK_DRAG && !e.isStart) {
@@ -1545,7 +1584,7 @@ BF2042Portal.Extensions = (function () {
         }
 
         // Gets the x and y position of the cursor relative to the workspace's parent svg element.
-        const mouseXY = _Blockly.utils.mouseToSvg(
+        const mouseXY = _Blockly.browserEvents.mouseToSvg(
             event,
             mainWorkspace.getParentSvg(),
             mainWorkspace.getInverseScreenCTM()
@@ -1568,6 +1607,52 @@ BF2042Portal.Extensions = (function () {
 
         mouseCoords.x = mouseXY.x;
         mouseCoords.y = mouseXY.y;
+    }
+
+    function hotfixDomMutations() {
+        function hotfixBlock(block) {
+            //NOTE: Don't fix blocks that don't have state information or implement mutations properly
+            if(
+                !block.saveExtraState || 
+                !block.loadExtraState || 
+                (block.mutationToDom && block.domToMutation)
+            ) {
+                return;
+            }
+
+            //NOTE: Always replace this implementation, since it's not needed for backwards compatibility.
+            block.mutationToDom = function() {
+                const mutation = _Blockly.utils.xml.createElement("mutation");
+                mutation.setAttribute("portal-extensions-state", JSON.stringify(this.saveExtraState()));
+
+                return mutation;
+            }
+
+            const originalDomToMutation = block.domToMutation;
+            
+            block.domToMutation = function(mutation) {
+                const stateAttribute = mutation.getAttribute("portal-extensions-state");
+
+                if(stateAttribute) {
+                    this.loadExtraState(JSON.parse(stateAttribute));
+                }
+                else if(originalDomToMutation) {
+                    originalDomToMutation.apply(this, arguments);
+                }
+            }
+        }
+
+        //NOTE: Fix the Block-classes
+        for(const blockId in _Blockly.Blocks) {
+            const block = _Blockly.Blocks[blockId];
+        
+            hotfixBlock(block);
+        }
+
+        //NOTE: Fix the Blocks that are already instanced
+        for(const block of _Blockly.getMainWorkspace().blockDB.values()) {
+            hotfixBlock(block);
+        }
     }
 
     return {

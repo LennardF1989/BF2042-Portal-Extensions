@@ -2,11 +2,15 @@ const BF2042Portal = {};
 
 BF2042Portal.Startup = (function () {
     let version;
-    let extensionUrl;
+    let manifest;
     let blockDefinitions;
 
     function getVersion() {
         return version;
+    }
+
+    function getManifest() {
+        return manifest;
     }
 
     function getBlockDefinitions() {
@@ -18,13 +22,13 @@ BF2042Portal.Startup = (function () {
             window.addEventListener("bf2042-portal-extensions-init", async function (message) {
                 version = message.detail.version;
     
-                if(!message.detail.extensionUrl) {
+                if(!message.detail.manifest || !message.detail.manifest.url) {
                     alert("Failed to load BF2042 Portal Extensions, please check the options!");
     
                     return;
                 }
     
-                extensionUrl = message.detail.extensionUrl;
+                manifest = message.detail.manifest;
     
                 resolve(message.detail);
             });
@@ -57,7 +61,7 @@ BF2042Portal.Startup = (function () {
         Promise.all([promise1, promise2]).then(function() {
             const scriptElement = document.createElement("script");
             scriptElement.setAttribute("type", "text/javascript");
-            scriptElement.setAttribute("src", extensionUrl);
+            scriptElement.setAttribute("src", manifest.url);
     
             document.body.appendChild(scriptElement);
 
@@ -68,6 +72,7 @@ BF2042Portal.Startup = (function () {
     return {
         init: init,
         getVersion: getVersion,
+        getManifest: getManifest,
         getBlockDefinitions: getBlockDefinitions
     }
 })();

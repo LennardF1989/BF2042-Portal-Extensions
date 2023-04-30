@@ -266,7 +266,7 @@ BF2042Portal.Extensions = (function () {
         };
     }
     function openDocumentation() {
-        const documentationUrl = "https://docs.bfportal.gg/docs/generated";
+        const documentationUrl = "https://docs.bfportal.gg/blocks";
         function precondition() {
             return "enabled";
         }
@@ -860,8 +860,8 @@ BF2042Portal.Extensions = (function () {
         if (selectedBlocks.length > 0) {
             blocks = selectedBlocks;
         }
-        if (!blocks && (_Blockly.selected || (scope !== undefined && scope.block))) {
-            blocks = [_Blockly.selected || scope.block];
+        if (!blocks && (_Blockly.getSelected() || (scope !== undefined && scope.block))) {
+            blocks = [_Blockly.getSelected() || scope.block];
         }
         return blocks;
     }
@@ -890,7 +890,7 @@ BF2042Portal.Extensions = (function () {
     function init() {
         cssFixes();
         hookContextMenu();
-        hookWorkspaceSvg();
+        hookBlockly();
         initializeBlocks(BF2042Portal.Startup.getBlockDefinitions());
         initializeDocumentEvents();
         initializeBlockly();
@@ -904,7 +904,7 @@ BF2042Portal.Extensions = (function () {
                 createMenu: createMenu
             },
             version: BF2042Portal.Startup.getVersion(),
-            plugins: []
+            pluginManager: BF2042Portal.Startup.getManifest().pluginManager
         });
     }
     function cssFixes() {
@@ -934,26 +934,52 @@ BF2042Portal.Extensions = (function () {
         document.head.appendChild(styleElement);
     }
     function hookContextMenu() {
-        const originalShow = _Blockly.ContextMenu.show;
-        _Blockly.ContextMenu.show = (e, options, rtl) => {
+        const workspace = _Blockly.getMainWorkspace();
+        const workspacePrototype = Object.getPrototypeOf(workspace);
+        const originalWorkspaceShowContextMenu = workspacePrototype.showContextMenu;
+        workspacePrototype.showContextMenu = function (e) {
             lastContextMenu = {
-                e,
-                options,
-                rtl
+                e: e,
+                options: _Blockly.ContextMenuRegistry.registry.getContextMenuOptions(_Blockly.ContextMenuRegistry.ScopeType.WORKSPACE, {
+                    workspace: this
+                }),
+                rtl: this.RTL
             };
-            updateMouseCoords(lastContextMenu.e);
-            return originalShow(e, options, rtl);
+            updateMouseCoords(e);
+            return originalWorkspaceShowContextMenu.apply(this, arguments);
+        };
+        const blockPrototype = Object.getPrototypeOf(workspace.getTopBlocks()[0]);
+        const originalBlockShowContextMenu = blockPrototype.showContextMenu;
+        blockPrototype.showContextMenu = function (e) {
+            lastContextMenu = {
+                e: e,
+                options: _Blockly.ContextMenuRegistry.registry.getContextMenuOptions(_Blockly.ContextMenuRegistry.ScopeType.BLOCK, {
+                    block: this
+                }),
+                rtl: this.RTL
+            };
+            updateMouseCoords(e);
+            return originalBlockShowContextMenu.apply(this, arguments);
         };
     }
-    function hookWorkspaceSvg() {
-        const originalWorkspaceSvg = _Blockly.Workspace.prototype.constructor;
-        _Blockly.Workspace.prototype.constructor = function () {
-            originalWorkspaceSvg.apply(this, arguments);
+    function hookBlockly() {
+        function initializeWorkspace(workspace) {
+            //TODO: Properly migrate to JSON instead of XML
+            hotfixDomMutations();
+            initializeWorkspaceEvents(workspace);
+            //NOTE: Wait for the current JavaScript frame to end, then fire the event for plugins.
             setTimeout(function () {
-                initializeWorkspaceEvents();
                 BF2042Portal.Plugins.initializeWorkspace();
             }, 0);
+        }
+        //NOTE: We have to hook the inject method as it's called whenever the user switches to the Rules Editor.
+        const blockly = _Blockly.inject;
+        _Blockly.inject = function () {
+            const workspace = blockly.apply(this, arguments);
+            initializeWorkspace(workspace);
+            return workspace;
         };
+        initializeWorkspace(_Blockly.getMainWorkspace());
     }
     function initializeDocumentEvents() {
         document.addEventListener("keydown", function (e) {
@@ -965,8 +991,8 @@ BF2042Portal.Extensions = (function () {
     }
     function initializeBlockly() {
         //NOTE: Register existing items
-        for (const key in _Blockly.ContextMenuRegistry.registry.registry_) {
-            registerItem(_Blockly.ContextMenuRegistry.registry.registry_[key]);
+        for (const value of _Blockly.ContextMenuRegistry.registry.registry_.values()) {
+            registerItem(value);
         }
         //NOTE: Delete existing items
         _Blockly.ContextMenuRegistry.registry.unregister("cleanWorkspace");
@@ -984,23 +1010,18 @@ BF2042Portal.Extensions = (function () {
             "items.toggleToolbox",
             "items.separatorWorkspace",
             "items.exportBlocksWorkspace",
-            "items.importBlocksFromFile",
-            "items.separatorWorkspace",
-            "items.pasteFromClipboard",
+            "items.importBlocksFromFile"
         ];
         const optionsBlockMenu = optionsBlock();
         optionsBlockMenu.weight = -99;
         optionsBlockMenu.options = [
             "items.deleteModBlock",
-            "items.jumpToSubRoutine",
             "items.separatorBlock",
             "items.toggleComments",
             "items.toggleInputs",
             "items.toggleCollapse",
             "items.separatorBlock",
-            "items.exportBlocksBlock",
-            "items.separatorBlock",
-            "items.copyToClipboard",
+            "items.exportBlocksBlock"
         ];
         registerMenu(optionsWorkspaceMenu);
         registerMenu(optionsBlockMenu);
@@ -1027,8 +1048,12 @@ BF2042Portal.Extensions = (function () {
         const contextMenuStructure = [
             "items.addBlock",
             "menus.optionsWorkspace",
-            "menus.optionsBlock"
+            "menus.optionsBlock",
+            "items.jumpToSubRoutine",
+            "items.copyToClipboard",
+            "items.pasteFromClipboard"
         ];
+        //TODO: Give plugins a chance to modify this
         contextMenuStructure.forEach(function (item) {
             let menuItem;
             if (item.startsWith("items.")) {
@@ -1183,25 +1208,24 @@ BF2042Portal.Extensions = (function () {
         }
         function getTranslation(key) {
             const splitKeys = key.split(".");
-            let firstElement = Blockly.Msg[splitKeys[0]];
+            let firstElement = Blockly.Msg.Msg[splitKeys[0]];
             for (let index = 1; index < splitKeys.Length; index++) {
                 firstElement = firstElement[splitKeys[index]];
             }
             return firstElement;
         }
     }
-    function initializeWorkspaceEvents() {
+    function initializeWorkspaceEvents(workspace) {
         let deltaX;
         let deltaY;
         let activeBlock;
-        const workspace = _Blockly.getMainWorkspace();
         workspace.addChangeListener(function (e) {
             if (e.type === _Blockly.Events.CLICK || e.type === _Blockly.Events.SELECTED) {
                 if (shiftKey) {
                     if (!e.blockId) {
                         return;
                     }
-                    const block = workspace.blockDB_[e.blockId];
+                    const block = workspace.getBlockById(e.blockId);
                     const selectedIndex = selectedBlocks.indexOf(block);
                     if (selectedIndex < 0) {
                         selectedBlocks.push(block);
@@ -1212,12 +1236,11 @@ BF2042Portal.Extensions = (function () {
                         block.setHighlighted(false);
                     }
                 }
-                else {
+                else if (selectedBlocks.length > 0) {
+                    selectedBlocks.forEach(block => {
+                        block.setHighlighted(false);
+                    });
                     selectedBlocks.length = 0;
-                    ;
-                    for (const blockID in workspace.blockDB_) {
-                        workspace.blockDB_[blockID].setHighlighted(false);
-                    }
                 }
             }
             else if (e.type === _Blockly.Events.BLOCK_DRAG && !e.isStart) {
@@ -1245,7 +1268,7 @@ BF2042Portal.Extensions = (function () {
             return;
         }
         // Gets the x and y position of the cursor relative to the workspace's parent svg element.
-        const mouseXY = _Blockly.utils.mouseToSvg(event, mainWorkspace.getParentSvg(), mainWorkspace.getInverseScreenCTM());
+        const mouseXY = _Blockly.browserEvents.mouseToSvg(event, mainWorkspace.getParentSvg(), mainWorkspace.getInverseScreenCTM());
         // Gets where the visible workspace starts in relation to the workspace's parent svg element.
         const absoluteMetrics = mainWorkspace.getMetricsManager().getAbsoluteMetrics();
         // In workspace coordinates 0,0 is where the visible workspace starts.
@@ -1259,6 +1282,41 @@ BF2042Portal.Extensions = (function () {
         mouseXY.y /= mainWorkspace.scale;
         mouseCoords.x = mouseXY.x;
         mouseCoords.y = mouseXY.y;
+    }
+    function hotfixDomMutations() {
+        function hotfixBlock(block) {
+            //NOTE: Don't fix blocks that don't have state information or implement mutations properly
+            if (!block.saveExtraState ||
+                !block.loadExtraState ||
+                (block.mutationToDom && block.domToMutation)) {
+                return;
+            }
+            //NOTE: Always replace this implementation, since it's not needed for backwards compatibility.
+            block.mutationToDom = function () {
+                const mutation = _Blockly.utils.xml.createElement("mutation");
+                mutation.setAttribute("portal-extensions-state", JSON.stringify(this.saveExtraState()));
+                return mutation;
+            };
+            const originalDomToMutation = block.domToMutation;
+            block.domToMutation = function (mutation) {
+                const stateAttribute = mutation.getAttribute("portal-extensions-state");
+                if (stateAttribute) {
+                    this.loadExtraState(JSON.parse(stateAttribute));
+                }
+                else if (originalDomToMutation) {
+                    originalDomToMutation.apply(this, arguments);
+                }
+            };
+        }
+        //NOTE: Fix the Block-classes
+        for (const blockId in _Blockly.Blocks) {
+            const block = _Blockly.Blocks[blockId];
+            hotfixBlock(block);
+        }
+        //NOTE: Fix the Blocks that are already instanced
+        for (const block of _Blockly.getMainWorkspace().blockDB.values()) {
+            hotfixBlock(block);
+        }
     }
     return {
         init: init
@@ -1302,30 +1360,33 @@ BF2042Portal.Plugins = (function () {
     let initData;
     function init(data) {
         initData = data;
-        loadPlugins(data.plugins);
-    }
-    async function loadPlugins(plugins) {
-        for (let i = 0; i < plugins.length; i++) {
-            const pluginData = plugins[i];
-            loadPlugin(pluginData);
+        if (data.pluginManager) {
+            loadPluginManager(data.pluginManager);
         }
     }
-    async function loadPlugin(pluginData) {
+    function loadPluginManager(pluginManager) {
+        loadPlugin({
+            baseUrl: pluginManager.baseUrl,
+            manifest: {
+                id: "plugin-manager",
+                loadAsModule: pluginManager.loadAsModule || false,
+                main: pluginManager.main
+            }
+        });
+    }
+    function loadPlugin(pluginData) {
         try {
             const plugin = new Plugin(pluginData.baseUrl, pluginData.manifest);
             plugins[pluginData.manifest.id] = plugin;
-            if (pluginData.liveReload) {
-                const scriptElement = document.createElement("script");
-                scriptElement.setAttribute("type", "text/javascript");
-                scriptElement.setAttribute("src", plugin.getUrl(pluginData.manifest.main));
-                document.body.appendChild(scriptElement);
-            }
-            else if (pluginData.mainContent) {
-                const scriptElement = document.createElement("script");
-                scriptElement.setAttribute("type", "text/javascript");
-                scriptElement.innerHTML = `${pluginData.mainContent}\n//# sourceURL=${pluginData.manifest.id}.js`;
-                document.body.appendChild(scriptElement);
-            }
+            const scriptElement = document.createElement("script");
+            scriptElement.setAttribute("type", pluginData.manifest.loadAsModule
+                ? "module"
+                : "text/javascript");
+            scriptElement.setAttribute("src", plugin.getUrl(pluginData.manifest.main));
+            scriptElement.addEventListener("load", function () {
+                plugin.initializeWorkspace();
+            });
+            document.body.appendChild(scriptElement);
         }
         catch (e) {
             BF2042Portal.Shared.logError(`Failed to load plugin '${pluginData.manifest.name}''`, e);
@@ -1346,13 +1407,14 @@ BF2042Portal.Plugins = (function () {
     return {
         init: init,
         initializeWorkspace: initializeWorkspace,
-        getPlugin: getPlugin
+        getPlugin: getPlugin,
+        loadPlugin: loadPlugin
     };
 })();
 /// <reference path="App.ts"/>
 BF2042Portal.Shared = (function () {
     let pasteTextFromClipboardImplementation = pasteTextFromClipboardDefault;
-    let pasteTextFromClipboardFirefoxCallback = (text) => { };
+    let pasteTextFromClipboardFirefoxCallback = (_text) => { };
     function init() {
         //NOTE: If readText is not available, we are going to assume this is Firefox.
         if (navigator.clipboard.readText !== undefined) {
