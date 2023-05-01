@@ -4,24 +4,27 @@ app.factory("api", function () {
     let config = {};
 
     function initialize() {
-        window.parent.postMessage({
-            type: "plugin-manager",
-            action: "initialize"
-        }, "*");
+        window.parent.postMessage(
+            {
+                type: "plugin-manager",
+                action: "initialize",
+            },
+            "*",
+        );
     }
 
     function handleEvent(e) {
-        if(!e.data || e.data.type !== "plugin-manager") {
+        if (!e.data || e.data.type !== "plugin-manager") {
             return;
         }
-    
+
         const eventData = e.data;
-    
-        if(eventData.action === "load") {
-            if(!eventData.payload) {
+
+        if (eventData.action === "load") {
+            if (!eventData.payload) {
                 return;
             }
-    
+
             config = eventData.payload;
 
             $scope.$broadcast("reloadConfig");
@@ -33,22 +36,28 @@ app.factory("api", function () {
     }
 
     function saveConfig() {
-        if(!config) {
+        if (!config) {
             return;
         }
 
-        window.parent.postMessage({
-            type: "plugin-manager",
-            action: "save",
-            payload: config
-        }, "*");
+        window.parent.postMessage(
+            {
+                type: "plugin-manager",
+                action: "save",
+                payload: config,
+            },
+            "*",
+        );
     }
 
     function closeIframe() {
-        window.parent.postMessage({
-            type: "plugin-manager",
-            action: "close"
-        }, "*");
+        window.parent.postMessage(
+            {
+                type: "plugin-manager",
+                action: "close",
+            },
+            "*",
+        );
     }
 
     return {
@@ -56,17 +65,17 @@ app.factory("api", function () {
         handleEvent: handleEvent,
         getConfig: getConfig,
         saveConfig: saveConfig,
-        closeIframe: closeIframe
-    }
+        closeIframe: closeIframe,
+    };
 });
 
 app.config(function ($routeProvider) {
     $routeProvider
         .when("/plugins", {
-            templateUrl: "views/plugins.html"
+            templateUrl: "views/plugins.html",
         })
         .otherwise({
-            redirectTo: "/plugins"
+            redirectTo: "/plugins",
         });
 });
 
@@ -75,13 +84,13 @@ app.controller("MainController", function (api) {
 
     vm.version = "1.0.0";
 
-    vm.$onInit = function() {
+    vm.$onInit = function () {
         api.initialize();
-    }
+    };
 
-    vm.close = function() {
-        api.closeIframe();   
-    }
+    vm.close = function () {
+        api.closeIframe();
+    };
 
     window.addEventListener("message", (e) => {
         api.handleEvent(e);
@@ -95,7 +104,7 @@ app.controller("PluginsController", function ($scope, api) {
 
     vm.$onInit = function () {
         reloadConfig();
-    }
+    };
 
     function reloadConfig() {
         config = api.getConfig();
@@ -107,16 +116,23 @@ app.controller("PluginsController", function ($scope, api) {
     vm.showModal = function () {
         resetModal();
         openModal();
-    }
+    };
 
     vm.toggleEnable = function (plugin) {
         plugin.enabled = !plugin.enabled;
 
         api.saveConfig();
-    }
+    };
 
     vm.update = async function (plugin) {
-        if (!plugin.liveReload && !confirm(`Are you sure you wish to update '${plugin.manifest ? plugin.manifest.name : "Unknown"}'?`)) {
+        if (
+            !plugin.liveReload &&
+            !confirm(
+                `Are you sure you wish to update '${
+                    plugin.manifest ? plugin.manifest.name : "Unknown"
+                }'?`,
+            )
+        ) {
             return;
         }
 
@@ -130,24 +146,29 @@ app.controller("PluginsController", function ($scope, api) {
 
         if (plugin.liveReload) {
             vm.confirmPlugin();
-        }
-        else {
+        } else {
             openModal();
         }
 
         $scope.$apply();
-    }
+    };
 
     vm.delete = function (plugin) {
-        if (!confirm(`Are you sure you wish to remove '${plugin.manifest ? plugin.manifest.name : "Unknown"}'?`)) {
+        if (
+            !confirm(
+                `Are you sure you wish to remove '${
+                    plugin.manifest ? plugin.manifest.name : "Unknown"
+                }'?`,
+            )
+        ) {
             return;
         }
 
-        const index = config.plugins.findIndex(e => e === plugin);
+        const index = config.plugins.findIndex((e) => e === plugin);
         config.plugins.splice(index, 1);
 
         api.saveConfig();
-    }
+    };
 
     vm.reviewPlugin = async function () {
         vm.pluginManifestError = undefined;
@@ -160,7 +181,12 @@ app.controller("PluginsController", function ($scope, api) {
             const manifestResponse = await fetch(vm.pluginManifestUrl);
             const manifestJson = await manifestResponse.json();
 
-            if (!manifestJson.id || !manifestJson.name || !manifestJson.version || !manifestJson.main) {
+            if (
+                !manifestJson.id ||
+                !manifestJson.name ||
+                !manifestJson.version ||
+                !manifestJson.main
+            ) {
                 throw "Invalid manifest: id, name, version and main are required!";
             }
 
@@ -173,24 +199,24 @@ app.controller("PluginsController", function ($scope, api) {
             vm.pluginBaseUrl = baseUrl;
             vm.pluginMainContent = mainText;
             vm.pluginConfirm = true;
-        }
-        catch (e) {
+        } catch (e) {
             vm.pluginManifestError = e;
         }
 
         $scope.$apply();
-    }
+    };
 
     vm.confirmPlugin = function () {
         config.plugins = config.plugins || [];
 
-        const index = config.plugins.findIndex(e => e.manifestUrl === vm.pluginManifestUrl);
+        const index = config.plugins.findIndex(
+            (e) => e.manifestUrl === vm.pluginManifestUrl,
+        );
         const plugin = config.plugins[index];
 
         if (vm.pluginUpdate && index > -1) {
             config.plugins.splice(index, 1);
-        }
-        else if (index > -1) {
+        } else if (index > -1) {
             resetModal();
             closeModal();
 
@@ -201,7 +227,7 @@ app.controller("PluginsController", function ($scope, api) {
             enabled: plugin ? plugin.enabled : true,
             baseUrl: vm.pluginBaseUrl,
             manifestUrl: vm.pluginManifestUrl.trim(),
-            manifest: vm.pluginManifest
+            manifest: vm.pluginManifest,
         });
 
         api.saveConfig();
@@ -210,7 +236,7 @@ app.controller("PluginsController", function ($scope, api) {
 
         resetModal();
         closeModal();
-    }
+    };
 
     function openModal() {
         $("#add-plugin-modal").modal("show");
@@ -230,7 +256,7 @@ app.controller("PluginsController", function ($scope, api) {
         vm.pluginConfirm = undefined;
     }
 
-    $scope.$on("reloadConfig", function() {
+    $scope.$on("reloadConfig", function () {
         reloadConfig();
 
         $scope.$apply();

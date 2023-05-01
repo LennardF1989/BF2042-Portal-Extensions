@@ -1,27 +1,28 @@
-(async function () {       
+(async function () {
     const plugin = BF2042Portal.Plugins.getPlugin("plugin-manager");
 
     window.addEventListener("message", (e) => {
-        if(!e.data || e.data.type !== "plugin-manager") {
+        if (!e.data || e.data.type !== "plugin-manager") {
             return;
         }
 
         const eventData = e.data;
 
-        if(eventData.action === "initialize") {
-            e.source.postMessage({
-                type: "plugin-manager",
-                action: "load",
-                payload: getConfig()
-            }, "*");
-        }
-        else if(eventData.action === "save") {
+        if (eventData.action === "initialize") {
+            e.source.postMessage(
+                {
+                    type: "plugin-manager",
+                    action: "load",
+                    payload: getConfig(),
+                },
+                "*",
+            );
+        } else if (eventData.action === "save") {
             saveConfig(eventData.payload);
-        }
-        else if(eventData.action === "close") {
+        } else if (eventData.action === "close") {
             const pluginManagerDiv = document.getElementById("plugin-manager");
-            
-            if(pluginManagerDiv) {
+
+            if (pluginManagerDiv) {
                 document.body.removeChild(pluginManagerDiv);
             }
         }
@@ -35,20 +36,19 @@
 
         let tempConfig = localStorage.getItem("plugin-manager-config");
 
-        if(tempConfig) {
+        if (tempConfig) {
             try {
                 config = JSON.parse(tempConfig);
-            }
-            catch(e) {
+            } catch (e) {
                 //Do nothing
             }
         }
 
         return config;
     }
-    
+
     function saveConfig(config) {
-        if(!config) {
+        if (!config) {
             return;
         }
 
@@ -58,14 +58,14 @@
     function initializePlugins() {
         const config = getConfig();
 
-        if(!config.plugins) {
+        if (!config.plugins) {
             return;
         }
 
         for (let i = 0; i < config.plugins.length; i++) {
             const pluginData = config.plugins[i];
 
-            if(!pluginData.enabled) {
+            if (!pluginData.enabled) {
                 continue;
             }
 
@@ -78,11 +78,12 @@
             function precondition() {
                 return "enabled";
             }
-        
-            async function callback() {
-                let pluginManagerDiv = document.getElementById("plugin-manager");
 
-                if(pluginManagerDiv) {
+            async function callback() {
+                let pluginManagerDiv =
+                    document.getElementById("plugin-manager");
+
+                if (pluginManagerDiv) {
                     return;
                 }
 
@@ -103,27 +104,29 @@
 
                 const iframe = document.createElement("iframe");
                 iframe.src = plugin.getUrl("index.html");
-                iframe.style = "width: 90vw; height: 90vh; border: 0; border-radius: 10px";
+                iframe.style =
+                    "width: 90vw; height: 90vh; border: 0; border-radius: 10px";
                 iframe.id = "plugin-manager-iframe";
 
                 pluginManagerDiv.appendChild(iframe);
 
                 document.body.appendChild(pluginManagerDiv);
             }
-        
+
             return {
                 id: "pluginManager",
                 displayText: "Plugin Manager",
                 scopeType: _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE,
                 weight: 100,
                 preconditionFn: precondition,
-                callback: callback
+                callback: callback,
             };
         })();
-    
+
         plugin.registerItem(pluginManager);
 
-        const optionsWorkspaceMenu = _Blockly.ContextMenuRegistry.registry.getItem("optionsWorkspace");
+        const optionsWorkspaceMenu =
+            _Blockly.ContextMenuRegistry.registry.getItem("optionsWorkspace");
         optionsWorkspaceMenu.options.unshift("items.separatorWorkspace");
         optionsWorkspaceMenu.options.unshift("items.pluginManager");
     }

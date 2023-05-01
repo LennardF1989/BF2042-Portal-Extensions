@@ -1,20 +1,16 @@
 {
-  "name": "BF2042 Portal Extensions",
-  "description": "Adds additional functionality to the BF2042 Portal Rules Editor.",
-  "version": "2.0.0",
-  "author": "Lennard Fonteijn",
-  "homepage_url": "https://github.com/LennardF1989/BF2042-Portal-Extensions",
-  "icons": {
-    "128": "icon-128.png"
-  },
-  "content_scripts": [
-    {
-      "matches": [
-        "https://portal.battlefield.com/*"
-      ],
-      "js": [
-        "extension/app.js"
-      ]
-    }
-  ]
+    "name": "BF2042 Portal Extensions",
+    "description": "Adds additional functionality to the BF2042 Portal Rules Editor.",
+    "version": "2.0.0",
+    "author": "Lennard Fonteijn",
+    "homepage_url": "https://github.com/LennardF1989/BF2042-Portal-Extensions",
+    "icons": {
+        "128": "icon-128.png"
+    },
+    "content_scripts": [
+        {
+            "matches": ["https://portal.battlefield.com/*"],
+            "js": ["extension/app.js"]
+        }
+    ]
 }

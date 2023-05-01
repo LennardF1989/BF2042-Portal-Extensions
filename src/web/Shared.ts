@@ -2,7 +2,7 @@
 
 BF2042Portal.Shared = (function () {
     let pasteTextFromClipboardImplementation = pasteTextFromClipboardDefault;
-    let pasteTextFromClipboardFirefoxCallback = (_text: string) => { };
+    let pasteTextFromClipboardFirefoxCallback = (_text: string) => {};
 
     function init() {
         //NOTE: If readText is not available, we are going to assume this is Firefox.
@@ -12,9 +12,12 @@ BF2042Portal.Shared = (function () {
 
         pasteTextFromClipboardImplementation = pasteTextFromClipboardFirefox;
 
-        window.addEventListener("bf2042-portal-extensions-paste", async function (message: any) {
-            pasteTextFromClipboardFirefoxCallback(message.detail);
-        });
+        window.addEventListener(
+            "bf2042-portal-extensions-paste",
+            async function (message: any) {
+                pasteTextFromClipboardFirefoxCallback(message.detail);
+            },
+        );
     }
 
     async function copyTextToClipboard(text) {
@@ -22,7 +25,9 @@ BF2042Portal.Shared = (function () {
     }
 
     async function copyBlobToClipboard(blobData) {
-        return await navigator.clipboard.write([new ClipboardItem({ [blobData.type]: blobData })]);
+        return await navigator.clipboard.write([
+            new ClipboardItem({ [blobData.type]: blobData }),
+        ]);
     }
 
     async function pasteTextFromClipboard() {
@@ -38,8 +43,7 @@ BF2042Portal.Shared = (function () {
             pasteTextFromClipboardFirefoxCallback = (clipboard) => {
                 if (clipboard) {
                     resolve(clipboard);
-                }
-                else {
+                } else {
                     reject();
                 }
             };
@@ -61,11 +65,10 @@ BF2042Portal.Shared = (function () {
         const data = localStorage.getItem(key);
 
         try {
-            if (typeof (data) === "string") {
+            if (typeof data === "string") {
                 return JSON.parse(data);
             }
-        }
-        catch (e) {
+        } catch (e) {
             //Do nothing
         }
 
@@ -84,6 +87,6 @@ BF2042Portal.Shared = (function () {
         isCopyBlobToClipboardSupported: isCopyBlobToClipboardSupported,
         loadFromLocalStorage: loadFromLocalStorage,
         saveToLocalStorage: saveToLocalStorage,
-        logError: logError
-    }
+        logError: logError,
+    };
 })();

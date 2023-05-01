@@ -8,39 +8,39 @@ BF2042Portal.Plugins = (function () {
 
         this.initializeWorkspace = function () {
             //Do nothing
-        }
+        };
 
         this.getUrl = function (relativeUrl) {
             return `${baseUrl}/${relativeUrl}`;
-        }
+        };
 
         this.getMouseCoords = function () {
             return initData.api.getMouseCoords();
-        }
+        };
 
         this.getSelectedBlocks = function () {
             return initData.api.getSelectedBlocks();
-        }
+        };
 
         this.showContextMenuWithBack = function (options) {
             return initData.api.showContextMenuWithBack(options);
-        }
+        };
 
         this.registerMenu = function (menu) {
             return initData.api.registerMenu(menu);
-        }
+        };
 
         this.registerItem = function (item) {
             return initData.api.registerItem(item);
-        }
+        };
 
         this.createMenu = function (id, scopeType, scope) {
             return initData.api.createMenu(id, scopeType, scope);
-        }
+        };
 
         this.getExtensionVersion = function () {
             return initData.version;
-        }
+        };
     }
 
     const plugins = {};
@@ -50,8 +50,8 @@ BF2042Portal.Plugins = (function () {
     function init(data) {
         initData = data;
 
-        if(data.pluginManager) {
-            loadPluginManager(data.pluginManager);   
+        if (data.pluginManager) {
+            loadPluginManager(data.pluginManager);
         }
     }
 
@@ -61,8 +61,8 @@ BF2042Portal.Plugins = (function () {
             manifest: {
                 id: "plugin-manager",
                 loadAsModule: pluginManager.loadAsModule || false,
-                main: pluginManager.main
-            }
+                main: pluginManager.main,
+            },
         });
     }
 
@@ -72,19 +72,24 @@ BF2042Portal.Plugins = (function () {
             plugins[pluginData.manifest.id] = plugin;
 
             const scriptElement = document.createElement("script");
-            scriptElement.setAttribute("type", pluginData.manifest.loadAsModule 
-                ? "module" 
-                : "text/javascript"
+            scriptElement.setAttribute(
+                "type",
+                pluginData.manifest.loadAsModule ? "module" : "text/javascript",
             );
-            scriptElement.setAttribute("src", plugin.getUrl(pluginData.manifest.main));
-            scriptElement.addEventListener("load", function() {
+            scriptElement.setAttribute(
+                "src",
+                plugin.getUrl(pluginData.manifest.main),
+            );
+            scriptElement.addEventListener("load", function () {
                 plugin.initializeWorkspace();
             });
 
             document.body.appendChild(scriptElement);
-        }
-        catch (e) {
-            BF2042Portal.Shared.logError(`Failed to load plugin '${pluginData.manifest.name}''`, e);
+        } catch (e) {
+            BF2042Portal.Shared.logError(
+                `Failed to load plugin '${pluginData.manifest.name}''`,
+                e,
+            );
         }
     }
 
@@ -108,6 +113,6 @@ BF2042Portal.Plugins = (function () {
         init: init,
         initializeWorkspace: initializeWorkspace,
         getPlugin: getPlugin,
-        loadPlugin: loadPlugin
+        loadPlugin: loadPlugin,
     };
 })();

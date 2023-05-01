@@ -18,14 +18,14 @@ const configService = (function () {
     }
 
     function saveConfig() {
-        chrome.storage.local.set({ "config": config });
+        chrome.storage.local.set({ config: config });
     }
 
     return {
         loadConfig: loadConfig,
         getConfig: getConfig,
-        saveConfig: saveConfig
-    }
+        saveConfig: saveConfig,
+    };
 })();
 
 const manifestURLInputElement = document.querySelector("#manifestURLInput");
@@ -38,20 +38,26 @@ function init() {
     const version = chrome.runtime.getManifest().version;
     document.querySelector("#version").innerHTML = version;
 
-    document.querySelector("#officialManifest").addEventListener("click", async function(e) {
-        e.preventDefault();
+    document
+        .querySelector("#officialManifest")
+        .addEventListener("click", async function (e) {
+            e.preventDefault();
 
-        manifestUrl = this.href;
-        manifestURLInputElement.value = manifestUrl;
-        await refreshManifest();
+            manifestUrl = this.href;
+            manifestURLInputElement.value = manifestUrl;
+            await refreshManifest();
 
-        return false;
-    });
+            return false;
+        });
 
-    document.querySelector("#refreshManifest").addEventListener("click", refreshManifest);
-    document.querySelector("#confirmVersion").addEventListener("click", confirmVersion);
+    document
+        .querySelector("#refreshManifest")
+        .addEventListener("click", refreshManifest);
+    document
+        .querySelector("#confirmVersion")
+        .addEventListener("click", confirmVersion);
 
-    setTimeout(async function() {
+    setTimeout(async function () {
         await asyncInit();
     }, 0);
 }
@@ -65,16 +71,19 @@ async function asyncInit() {
     manifestURLInputElement.value = manifestUrl;
     await refreshManifest();
     versionDropdownElement.value = config.selectedVersion;
-    updateElementValidation(versionDropdownElement, versionDropdownElement.value);
+    updateElementValidation(
+        versionDropdownElement,
+        versionDropdownElement.value,
+    );
 
     document.querySelector("#loading").classList.add("d-none");
     document.querySelector("#loaded").classList.remove("d-none");
 }
 
 async function refreshManifest() {
-    if(!manifestURLInputElement.value) {
+    if (!manifestURLInputElement.value) {
         updateElementValidation(manifestURLInputElement, false);
-        
+
         return;
     }
 
@@ -89,20 +98,22 @@ async function refreshManifest() {
         updateElementValidation(manifestURLInputElement, true);
 
         loadVersions(manifestVersions);
-    }
-    catch(e) {
+    } catch (e) {
         updateElementValidation(manifestURLInputElement, false);
 
         loadVersions([]);
     }
-    
-    updateElementValidation(versionDropdownElement, versionDropdownElement.value);
+
+    updateElementValidation(
+        versionDropdownElement,
+        versionDropdownElement.value,
+    );
 }
 
 function loadVersions(versions) {
     removeAllChildNodes(versionDropdownElement);
 
-    for(const key in versions) {
+    for (const key in versions) {
         const version = versions[key];
 
         const option = document.createElement("option");
@@ -114,22 +125,22 @@ function loadVersions(versions) {
 }
 
 function confirmVersion() {
-    if(!versionDropdownElement.value) {
+    if (!versionDropdownElement.value) {
         return;
     }
-    
+
     const confirmText = `Please review the following information:
 - Manifest URL: ${manifestUrl}
 - Version: ${manifestVersions[versionDropdownElement.value].name}
 
 Are you sure you want to confirm these changes?`;
 
-    if(!confirm(confirmText)) {
+    if (!confirm(confirmText)) {
         return;
     }
 
     let config = configService.getConfig();
-    
+
     config.manifestUrl = manifestUrl;
     config.versions = manifestVersions;
     config.selectedVersion = versionDropdownElement.value;
@@ -144,11 +155,10 @@ function removeAllChildNodes(parent) {
 }
 
 function updateElementValidation(element, isValid) {
-    if(isValid) {
+    if (isValid) {
         element.classList.remove("is-invalid");
         element.classList.add("is-valid");
-    }
-    else {
+    } else {
         element.classList.remove("is-valid");
         element.classList.add("is-invalid");
     }

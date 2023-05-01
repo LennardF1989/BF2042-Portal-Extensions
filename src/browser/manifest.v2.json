@@ -4,11 +4,6 @@
         "default_icon": "icon-128.png",
         "default_popup": "options/index.html"
     },
-    "web_accessible_resources": [
-        "web/app.js"
-    ],
-    "permissions": [
-        "storage",
-        "clipboardRead"
-    ]
+    "web_accessible_resources": ["web/app.js"],
+    "permissions": ["storage", "clipboardRead"]
 }

@@ -1,14 +1,134 @@
 /// <reference path="App.ts"/>
 
 BF2042Portal.Extensions = (function () {
+    const BlocklyWrapper = (function (blockly, blocklyTranslations) {
+        const self = this;
+
+        this.Events = blockly.Events;
+
+        this.getMainWorkspace = function () {
+            return blockly.getMainWorkspace();
+        };
+
+        this.getTranslation = function (key) {
+            const splitKeys = key.split(".");
+
+            let firstElement = blocklyTranslations.Msg.Msg[splitKeys[0]];
+
+            for (let index = 1; index < splitKeys.Length; index++) {
+                firstElement = firstElement[splitKeys[index]];
+            }
+
+            return firstElement;
+        };
+
+        this.Blocks = {
+            getSelected: function () {
+                return blockly.getSelected();
+            },
+
+            getAllClasses: function () {
+                return Object.keys(blockly.Blocks).map((e) => {
+                    return {
+                        key: e,
+                        value: blockly.Blocks[e],
+                    };
+                });
+            },
+
+            getAllInstances: function () {
+                return [...self.getMainWorkspace().blockDB].map((e) => {
+                    return {
+                        key: e[0],
+                        value: e[1],
+                    };
+                });
+            },
+        };
+
+        this.ContextMenu = {
+            ScopeType: {
+                WORKSPACE: blockly.ContextMenuRegistry.ScopeType.WORKSPACE,
+                BLOCK: blockly.ContextMenuRegistry.ScopeType.BLOCK,
+            },
+
+            show: function (event, options, rtl) {
+                blockly.ContextMenu.show(event, options, rtl);
+            },
+
+            getOptionsForWorkspace: function (workspace) {
+                return blockly.ContextMenuRegistry.registry.getContextMenuOptions(
+                    self.ContextMenu.ScopeType.WORKSPACE,
+                    {
+                        workspace: workspace,
+                    },
+                );
+            },
+
+            getOptionsForBlock: function (block) {
+                return blockly.ContextMenuRegistry.registry.getContextMenuOptions(
+                    self.ContextMenu.ScopeType.BLOCK,
+                    {
+                        block: block,
+                    },
+                );
+            },
+
+            getAllItems: function () {
+                return [...blockly.ContextMenuRegistry.registry.registry_].map(
+                    (e) => {
+                        return {
+                            key: e[0],
+                            value: e[1],
+                        };
+                    },
+                );
+            },
+
+            unregisterItem: function (item) {
+                blockly.ContextMenuRegistry.registry.unregister(item);
+            },
+
+            registerItem: function (item) {
+                blockly.ContextMenuRegistry.registry.register(item);
+            },
+        };
+
+        this.Xml = {
+            createElement: blockly.utils.xml.createElement,
+            mouseToSvg: blockly.browserEvents.mouseToSvg,
+
+            workspaceToDom: blockly.Xml.workspaceToDom,
+            textToDom: blockly.Xml.textToDom,
+
+            domToWorkspace: blockly.Xml.domToWorkspace,
+            domToVariables: blockly.Xml.domToVariables,
+            domToText: blockly.Xml.domToText,
+
+            blockToXml: function (block) {
+                const xmlDom = blockly.Xml.blockToDomWithXY(block, true);
+                blockly.Xml.deleteNext(xmlDom);
+
+                const xmlText = blockly.Xml.domToText(xmlDom).replace(
+                    'xmlns="https://developers.google.com/blockly/xml"',
+                    "",
+                );
+
+                return xmlText;
+            },
+        };
+
+        return this;
+    })(_Blockly, Blockly);
+
     const blocklyConfig = {
         menus: {},
-        items: {}
+        items: {},
     };
 
     const mouseCoords = {
         x: 0,
-        y: 0
+        y: 0,
     };
 
     const contextMenuStack = [];
@@ -20,6 +140,8 @@ BF2042Portal.Extensions = (function () {
     const selectedBlocks = [];
 
     let shiftKey = false;
+
+    const imageDataUrlCache = new Map();
 
     //Blockly functions - Items
     function copyToClipboard() {
@@ -41,8 +163,7 @@ BF2042Portal.Extensions = (function () {
                 }
 
                 await BF2042Portal.Shared.copyTextToClipboard(xmlText);
-            }
-            catch (e) {
+            } catch (e) {
                 BF2042Portal.Shared.logError(errorMessage, e);
 
                 alert(errorMessage);
@@ -52,11 +173,11 @@ BF2042Portal.Extensions = (function () {
         return {
             id: "copyToClipboard",
             displayText: "Copy to Clipboard",
-            scopeType: _Blockly.ContextMenuRegistry.ScopeType.BLOCK,
+            scopeType: BlocklyWrapper.ContextMenu.ScopeType.BLOCK,
             weight: 100,
             preconditionFn: precondition,
-            callback: callback
-        }
+            callback: callback,
+        };
     }
 
     function pasteFromClipboard() {
@@ -69,13 +190,13 @@ BF2042Portal.Extensions = (function () {
 
         async function callback() {
             try {
-                let xmlText = await BF2042Portal.Shared.pasteTextFromClipboard();
+                let xmlText =
+                    await BF2042Portal.Shared.pasteTextFromClipboard();
 
                 if (!loadXml(xmlText)) {
                     alert(errorMessage);
                 }
-            }
-            catch (e) {
+            } catch (e) {
                 BF2042Portal.Shared.logError(errorMessage, e);
 
                 alert(errorMessage);
@@ -85,22 +206,20 @@ BF2042Portal.Extensions = (function () {
         return {
             id: "pasteFromClipboard",
             displayText: "Paste from Clipboard",
-            scopeType: _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE,
+            scopeType: BlocklyWrapper.ContextMenu.ScopeType.WORKSPACE,
             weight: 100,
             preconditionFn: precondition,
-            callback: callback
-        }
+            callback: callback,
+        };
     }
 
     function toggleComments() {
         function displayText(scope) {
-            const toggleType = scope.block.getCommentIcon()
-                ? "Remove"
-                : "Add";
+            const toggleType = scope.block.getCommentIcon() ? "Remove" : "Add";
 
             const blocks = getSelectedBlocks(scope);
 
-            if(blocks.length === 1) {
+            if (blocks.length === 1) {
                 return `${toggleType} Comment`;
             }
 
@@ -124,11 +243,11 @@ BF2042Portal.Extensions = (function () {
         return {
             id: "toggleComments",
             displayText: displayText,
-            scopeType: _Blockly.ContextMenuRegistry.ScopeType.BLOCK,
+            scopeType: BlocklyWrapper.ContextMenu.ScopeType.BLOCK,
             weight: 100,
             preconditionFn: precondition,
-            callback: callback
-        }
+            callback: callback,
+        };
     }
 
     function toggleInputs() {
@@ -139,7 +258,7 @@ BF2042Portal.Extensions = (function () {
 
             const blocks = getSelectedBlocks(scope);
 
-            if(blocks.length === 1) {
+            if (blocks.length === 1) {
                 return `Show Inputs ${toggleType}`;
             }
 
@@ -163,11 +282,11 @@ BF2042Portal.Extensions = (function () {
         return {
             id: "toggleInputs",
             displayText: displayText,
-            scopeType: _Blockly.ContextMenuRegistry.ScopeType.BLOCK,
+            scopeType: BlocklyWrapper.ContextMenu.ScopeType.BLOCK,
             weight: 100,
             preconditionFn: precondition,
-            callback: callback
-        }
+            callback: callback,
+        };
     }
 
     function toggleCollapse() {
@@ -178,7 +297,7 @@ BF2042Portal.Extensions = (function () {
 
             const blocks = getSelectedBlocks(scope);
 
-            if(blocks.length === 1) {
+            if (blocks.length === 1) {
                 return `${toggleType} Block`;
             }
 
@@ -202,22 +321,22 @@ BF2042Portal.Extensions = (function () {
         return {
             id: "toggleCollapse",
             displayText: displayText,
-            scopeType: _Blockly.ContextMenuRegistry.ScopeType.BLOCK,
+            scopeType: BlocklyWrapper.ContextMenu.ScopeType.BLOCK,
             weight: 100,
             preconditionFn: precondition,
-            callback: callback
-        }
+            callback: callback,
+        };
     }
 
     function collapseAllBlocks() {
         function displayText(scope) {
             const blocks = getSelectedBlocks(scope);
 
-            if(blocks) {
-                if(blocks.length === 1) {
+            if (blocks) {
+                if (blocks.length === 1) {
                     return `Collapse Block`;
                 }
-                
+
                 return `Collapse ${blocks.length} Blocks`;
             }
 
@@ -231,16 +350,15 @@ BF2042Portal.Extensions = (function () {
         function callback(scope) {
             const blocks = getSelectedBlocks(scope);
 
-            if(blocks) {
+            if (blocks) {
                 for (let i = 0; i < blocks.length; i++) {
                     blocks[i].setCollapsed(true);
                 }
-            }
-            else {
-                const workspace = _Blockly.getMainWorkspace();
+            } else {
+                const workspace = BlocklyWrapper.getMainWorkspace();
 
-                for (const blockID in workspace.blockDB_) {
-                    workspace.blockDB_[blockID].setCollapsed(true);
+                for (const block of workspace.getAllBlocks()) {
+                    block.setCollapsed(true);
                 }
             }
         }
@@ -248,19 +366,19 @@ BF2042Portal.Extensions = (function () {
         return {
             id: "collapseAllBlocks",
             displayText: displayText,
-            scopeType: _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE,
+            scopeType: BlocklyWrapper.ContextMenu.ScopeType.WORKSPACE,
             weight: 100,
             preconditionFn: precondition,
-            callback: callback
-        }
+            callback: callback,
+        };
     }
 
     function expandAllBlocks() {
         function displayText(scope) {
             const blocks = getSelectedBlocks(scope);
 
-            if(blocks) {
-                if(blocks.length === 1) {
+            if (blocks) {
+                if (blocks.length === 1) {
                     return `Expand Block`;
                 }
 
@@ -277,16 +395,15 @@ BF2042Portal.Extensions = (function () {
         function callback(scope) {
             const blocks = getSelectedBlocks(scope);
 
-            if(blocks) {
+            if (blocks) {
                 for (let i = 0; i < blocks.length; i++) {
                     blocks[i].setCollapsed(false);
                 }
-            }
-            else {
-                const workspace = _Blockly.getMainWorkspace();
+            } else {
+                const workspace = BlocklyWrapper.getMainWorkspace();
 
-                for (const blockID in workspace.blockDB_) {
-                    workspace.blockDB_[blockID].setCollapsed(false);
+                for (const block of workspace.getAllBlocks()) {
+                    block.setCollapsed(false);
                 }
             }
         }
@@ -294,16 +411,20 @@ BF2042Portal.Extensions = (function () {
         return {
             id: "expandAllBlocks",
             displayText: displayText,
-            scopeType: _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE,
+            scopeType: BlocklyWrapper.ContextMenu.ScopeType.WORKSPACE,
             weight: 100,
             preconditionFn: precondition,
-            callback: callback
-        }
+            callback: callback,
+        };
     }
 
     function deleteModBlock() {
         function precondition(scope) {
-            if (scope.block.type === "modBlock" && getBlocksByType("modBlock").length > 1) {
+            if (
+                scope.block.type === "modBlock" &&
+                BlocklyWrapper.getMainWorkspace().getBlocksByType("modBlock")
+                    .length > 1
+            ) {
                 return "enabled";
             }
 
@@ -314,28 +435,14 @@ BF2042Portal.Extensions = (function () {
             scope.block.dispose(false, false);
         }
 
-        //Based on: https://groups.google.com/g/blockly/c/4mfShJDY6-k
-        function getBlocksByType(type) {
-            const blocks = [];
-            const workspace = _Blockly.getMainWorkspace();
-
-            for (const blockID in workspace.blockDB_) {
-                if (workspace.blockDB_[blockID].type == type) {
-                    blocks.push(workspace.blockDB_[blockID]);
-                }
-            }
-
-            return blocks;
-        }
-
         return {
             id: "deleteModBlock",
             displayText: "Delete Mod Block",
-            scopeType: _Blockly.ContextMenuRegistry.ScopeType.BLOCK,
+            scopeType: BlocklyWrapper.ContextMenu.ScopeType.BLOCK,
             weight: 100,
             preconditionFn: precondition,
-            callback: callback
-        }
+            callback: callback,
+        };
     }
 
     function openDocumentation() {
@@ -352,11 +459,11 @@ BF2042Portal.Extensions = (function () {
         return {
             id: "openDocumentation",
             displayText: "Open Documentation",
-            scopeType: _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE,
+            scopeType: BlocklyWrapper.ContextMenu.ScopeType.WORKSPACE,
             weight: 100,
             preconditionFn: precondition,
-            callback: callback
-        }
+            callback: callback,
+        };
     }
 
     function jumpToSubRoutine() {
@@ -371,24 +478,28 @@ BF2042Portal.Extensions = (function () {
         async function callback(scope) {
             const subroutineName = scope.block.getFieldValue("SUBROUTINE_NAME");
 
-            const foundBlocks = _Blockly
-                .getMainWorkspace()
+            const foundBlocks = BlocklyWrapper.getMainWorkspace()
                 .getBlocksByType("subroutineBlock", false)
-                .filter(e => e.getFieldValue("SUBROUTINE_NAME") === subroutineName);
+                .filter(
+                    (e) =>
+                        e.getFieldValue("SUBROUTINE_NAME") === subroutineName,
+                );
 
             if (foundBlocks.length > 0) {
-                _Blockly.getMainWorkspace().centerOnBlock(foundBlocks[0].id);
+                BlocklyWrapper.getMainWorkspace().centerOnBlock(
+                    foundBlocks[0].id,
+                );
             }
         }
 
         return {
             id: "jumpToSubRoutine",
             displayText: "Jump to Subroutine",
-            scopeType: _Blockly.ContextMenuRegistry.ScopeType.BLOCK,
+            scopeType: BlocklyWrapper.ContextMenu.ScopeType.BLOCK,
             weight: 100,
             preconditionFn: precondition,
-            callback: callback
-        }
+            callback: callback,
+        };
     }
 
     function toggleDistractionFreeMode() {
@@ -397,19 +508,21 @@ BF2042Portal.Extensions = (function () {
         }
 
         async function callback() {
-            document.querySelector("app-root").classList.toggle("distraction-free");
+            document
+                .querySelector("app-root")
+                .classList.toggle("distraction-free");
 
-            _Blockly.getMainWorkspace().resize();
+            BlocklyWrapper.getMainWorkspace().resize();
         }
 
         return {
             id: "toggleDistractionFreeMode",
             displayText: "Toggle Distraction-Free Mode",
-            scopeType: _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE,
+            scopeType: BlocklyWrapper.ContextMenu.ScopeType.WORKSPACE,
             weight: 100,
             preconditionFn: precondition,
-            callback: callback
-        }
+            callback: callback,
+        };
     }
 
     function toggleToolbox() {
@@ -420,25 +533,31 @@ BF2042Portal.Extensions = (function () {
         async function callback() {
             document.querySelector("app-root").classList.toggle("hide-toolbox");
 
-            _Blockly.getMainWorkspace().resize();
+            BlocklyWrapper.getMainWorkspace().resize();
         }
 
         return {
             id: "toggleToolbox",
             displayText: "Toggle Toolbox",
-            scopeType: _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE,
+            scopeType: BlocklyWrapper.ContextMenu.ScopeType.WORKSPACE,
             weight: 100,
             preconditionFn: precondition,
-            callback: callback
-        }
+            callback: callback,
+        };
     }
 
     function exportBlocksWorkspace() {
-        return exportBlocks("exportBlocksWorkspace", _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE);
+        return exportBlocks(
+            "exportBlocksWorkspace",
+            BlocklyWrapper.ContextMenu.ScopeType.WORKSPACE,
+        );
     }
 
     function exportBlocksBlock() {
-        return exportBlocks("exportBlocksBlock", _Blockly.ContextMenuRegistry.ScopeType.BLOCK);
+        return exportBlocks(
+            "exportBlocksBlock",
+            BlocklyWrapper.ContextMenu.ScopeType.BLOCK,
+        );
     }
 
     function exportBlocks(id, scopeType) {
@@ -447,27 +566,29 @@ BF2042Portal.Extensions = (function () {
         }
 
         async function callback(scope) {
-            const menuItems = [{
-                text: "XML",
-                enabled: true,
-                callback: () => exportToXml(scope)
-            },
-            {
-                text: "SVG",
-                enabled: true,
-                callback: () => exportToSvg(scope)
-            },
-            {
-                text: "PNG",
-                enabled: true,
-                callback: () => exportToPngAsFile(scope)
-            }];
+            const menuItems = [
+                {
+                    text: "XML",
+                    enabled: true,
+                    callback: () => exportToXml(scope),
+                },
+                {
+                    text: "SVG",
+                    enabled: true,
+                    callback: () => exportToSvg(scope),
+                },
+                {
+                    text: "PNG",
+                    enabled: true,
+                    callback: () => exportToPngAsFile(scope),
+                },
+            ];
 
             if (BF2042Portal.Shared.isCopyBlobToClipboardSupported()) {
                 menuItems.push({
                     text: "PNG (Clipboard)",
                     enabled: true,
-                    callback: () => exportToPngOnClipboard(scope)
+                    callback: () => exportToPngOnClipboard(scope),
                 });
             }
 
@@ -484,14 +605,16 @@ BF2042Portal.Extensions = (function () {
                 return;
             }
 
-            const dataUri = `data:application/xml;charset=utf-8,${encodeURIComponent(xmlText)}`;
+            const dataUri = `data:application/xml;charset=utf-8,${encodeURIComponent(
+                xmlText,
+            )}`;
 
             downloadFile(dataUri, "workspace.xml");
         }
 
         async function exportToSvg(scope) {
             const blocks = getSelectedBlocks(scope);
-            const svgData = blocksToSvg(blocks);
+            const svgData = await blocksToSvg(blocks, false);
 
             downloadFile(svgData.svg, "screenshot.svg");
         }
@@ -499,13 +622,15 @@ BF2042Portal.Extensions = (function () {
         async function exportToPngAsFile(scope) {
             try {
                 const blocks = getSelectedBlocks(scope);
-                const svgData = blocksToSvg(blocks);
+                const svgData = await blocksToSvg(blocks, true);
                 const pngData = await svgToData(svgData, 1, "png");
 
                 downloadFile(pngData, "screenshot.png");
-            }
-            catch (e) {
-                BF2042Portal.Shared.logError("Failed to export PNG (Download)", e);
+            } catch (e) {
+                BF2042Portal.Shared.logError(
+                    "Failed to export PNG (Download)",
+                    e,
+                );
 
                 alert("Failed to export PNG (Download)!");
             }
@@ -514,23 +639,25 @@ BF2042Portal.Extensions = (function () {
         async function exportToPngOnClipboard(scope) {
             try {
                 const blocks = getSelectedBlocks(scope);
-                const svgData = blocksToSvg(blocks);
+                const svgData = await blocksToSvg(blocks, true);
                 const blobData = await svgToData(svgData, 1, "blob");
 
                 await BF2042Portal.Shared.copyBlobToClipboard(blobData);
 
                 alert("Done!");
-            }
-            catch (e) {
-                BF2042Portal.Shared.logError("Failed to export PNG (Clipboard)", e);
+            } catch (e) {
+                BF2042Portal.Shared.logError(
+                    "Failed to export PNG (Clipboard)",
+                    e,
+                );
 
                 alert("Failed to export PNG (Clipboard)!");
             }
         }
 
         //Based on: https://github.com/google/blockly/blob/master/tests/playgrounds/screenshot.js
-        function blocksToSvg(blocks) {
-            const workspace = _Blockly.getMainWorkspace();
+        async function blocksToSvg(blocks, convertImagesToDataURI) {
+            const workspace = BlocklyWrapper.getMainWorkspace();
             let x, y, width, height;
 
             if (blocks && blocks.length > 0) {
@@ -562,8 +689,7 @@ BF2042Portal.Extensions = (function () {
                 y = minY;
                 width = maxX - minX;
                 height = maxY - minY;
-            }
-            else {
+            } else {
                 const boundingBox = workspace.getBlocksBoundingBox();
                 x = boundingBox.x || boundingBox.left;
                 y = boundingBox.y || boundingBox.top;
@@ -575,18 +701,32 @@ BF2042Portal.Extensions = (function () {
             const clone = blockCanvas.cloneNode(true);
             clone.removeAttribute("transform");
 
-            const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            const svg = document.createElementNS(
+                "http://www.w3.org/2000/svg",
+                "svg",
+            );
             svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
             svg.appendChild(clone);
             svg.setAttribute("viewBox", `${x} ${y} ${width} ${height}`);
-            svg.setAttribute("class", `blocklySvg ${workspace.options.renderer || "geras"}-renderer ${workspace.getTheme ? workspace.getTheme().name + "-theme" : ""}`);
+            svg.setAttribute(
+                "class",
+                `blocklySvg ${workspace.options.renderer || "geras"}-renderer ${
+                    workspace.getTheme
+                        ? workspace.getTheme().name + "-theme"
+                        : ""
+                }`,
+            );
             svg.setAttribute("width", width);
             svg.setAttribute("height", height);
             svg.setAttribute("style", "background-color: transparent");
 
-            const css = [].slice.call(document.head.querySelectorAll("style"))
+            const css = [].slice
+                .call(document.head.querySelectorAll("style"))
                 .filter(function (el) {
-                    return /\.blocklySvg/.test(el.innerText) || (el.id.indexOf("blockly-") === 0);
+                    return (
+                        /\.blocklySvg/.test(el.innerText) ||
+                        el.id.indexOf("blockly-") === 0
+                    );
                 })
                 .map(function (el) {
                     return el.innerText;
@@ -597,18 +737,67 @@ BF2042Portal.Extensions = (function () {
             style.innerHTML = css;
             svg.insertBefore(style, svg.firstChild);
 
-            const svgAsXML = (new XMLSerializer)
+            let svgAsXML = new XMLSerializer()
                 .serializeToString(svg)
-                .replace(/&nbsp/g, "&#160")
-                .replace(/xlink:href="\//g, "xlink:href=\"https://portal.battlefield.com/");
+                .replace(/&nbsp/g, "&#160");
+
+            if (convertImagesToDataURI) {
+                const matches = [...svgAsXML.matchAll(/xlink:href=\"(.*?)\"/g)];
+
+                for (const match of matches) {
+                    const url = match[1];
+
+                    if (url.startsWith("data:") || imageDataUrlCache.has(url)) {
+                        continue;
+                    }
+
+                    try {
+                        let dataUrl = await new Promise(
+                            async (resolve, reject) => {
+                                try {
+                                    //TODO: Implement a time-out mechanism
+                                    const response = await fetch(
+                                        "https://portal.battlefield.com" + url,
+                                    );
+
+                                    const blob = await response.blob();
+
+                                    const reader = new FileReader();
+                                    reader.onload = (f) => {
+                                        resolve(f.target.result);
+                                    };
+                                    reader.readAsDataURL(blob);
+                                } catch (_) {
+                                    reject();
+                                }
+                            },
+                        );
+
+                        imageDataUrlCache.set(url, dataUrl);
+                    } catch (_) {
+                        imageDataUrlCache.set(url, url);
+                    }
+                }
+            }
+
+            svgAsXML = svgAsXML.replace(
+                /xlink:href=\"(.*?)\"/g,
+                function (_, url) {
+                    let newUrl = imageDataUrlCache.has(url)
+                        ? imageDataUrlCache.get(url)
+                        : url;
+
+                    return `xlink:href="${newUrl}"`;
+                },
+            );
 
             const data = `data:image/svg+xml,${encodeURIComponent(svgAsXML)}`;
 
             return {
                 width: width,
                 height: height,
-                svg: data
-            }
+                svg: data,
+            };
         }
 
         async function svgToData(svgData, scale, dataType) {
@@ -621,24 +810,34 @@ BF2042Portal.Extensions = (function () {
                 canvas.height = svgData.height * scale;
 
                 if (canvas.width > 16384 || canvas.height > 16384) {
-                    reject("The resulting image would be too large to handle for your browser. Please select less blocks or reduce the scale.");
+                    reject(
+                        "The resulting image would be too large to handle for your browser. Please select less blocks or reduce the scale.",
+                    );
                 }
 
                 img.onload = function () {
-                    context.drawImage(img, 0, 0, svgData.width, svgData.height, 0, 0, canvas.width, canvas.height);
+                    context.drawImage(
+                        img,
+                        0,
+                        0,
+                        svgData.width,
+                        svgData.height,
+                        0,
+                        0,
+                        canvas.width,
+                        canvas.height,
+                    );
 
                     try {
                         if (dataType === "png") {
                             const dataUri = canvas.toDataURL("image/png");
 
                             resolve(dataUri);
-                        }
-                        else if (dataType === "blob") {
-                            canvas.toBlob((function (blob) {
+                        } else if (dataType === "blob") {
+                            canvas.toBlob(function (blob) {
                                 resolve(blob);
-                            }));
-                        }
-                        else {
+                            });
+                        } else {
                             throw "Unknown type";
                         }
                     } catch (e) {
@@ -669,8 +868,8 @@ BF2042Portal.Extensions = (function () {
             scopeType: scopeType,
             weight: 100,
             preconditionFn: precondition,
-            callback: callback
-        }
+            callback: callback,
+        };
     }
 
     function importBlocksFromFile() {
@@ -689,32 +888,39 @@ BF2042Portal.Extensions = (function () {
                     return;
                 }
 
-                const fileReader = new FileReader;
+                const fileReader = new FileReader();
                 fileReader.onload = function (e) {
-                    if (confirm("Do you want to remove all existing blocks before importing?")) {
-                        _Blockly.getMainWorkspace().clear();
+                    if (
+                        confirm(
+                            "Do you want to remove all existing blocks before importing?",
+                        )
+                    ) {
+                        BlocklyWrapper.getMainWorkspace().clear();
                     }
 
                     try {
-                        const extension = inputElement.files[0].name.split('.').pop().toLowerCase()
+                        const extension = inputElement.files[0].name
+                            .split(".")
+                            .pop()
+                            .toLowerCase();
 
                         if (extension === "json") {
-                            const loadData = JSON.parse(<string>e.target.result);
+                            const loadData = JSON.parse(
+                                <string>e.target.result,
+                            );
 
                             if (!loadJson(loadData)) {
                                 alert("Failed to import workspace from JSON!");
                             }
-                        }
-                        else if (extension === "xml") {
+                        } else if (extension === "xml") {
                             if (!loadXml(e.target.result)) {
                                 alert("Failed to import workspace from XML!");
                             }
                         }
-                    }
-                    catch (e) {
+                    } catch (e) {
                         alert("Failed to import workspace!");
                     }
-                }
+                };
 
                 fileReader.readAsText(inputElement.files[0]);
             });
@@ -727,11 +933,11 @@ BF2042Portal.Extensions = (function () {
         return {
             id: "importBlocksFromFile",
             displayText: "Import Blocks from File",
-            scopeType: _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE,
+            scopeType: BlocklyWrapper.ContextMenu.ScopeType.WORKSPACE,
             weight: 100,
             preconditionFn: precondition,
-            callback: callback
-        }
+            callback: callback,
+        };
     }
 
     function addBlock() {
@@ -789,16 +995,19 @@ BF2042Portal.Extensions = (function () {
                                 text: `${role} ${entry2.displayName}`,
                                 enabled: true,
                                 callback: function () {
-                                    const block = _Blockly.getMainWorkspace().newBlock(entry2.internalName);
+                                    const block =
+                                        BlocklyWrapper.getMainWorkspace().newBlock(
+                                            entry2.internalName,
+                                        );
                                     block.initSvg();
                                     block.render();
                                     block.moveTo(mouseCoords);
-                                }
+                                },
                             });
                         }
 
                         showContextMenuWithBack(subOptions.sort(sortByText));
-                    }
+                    },
                 });
             }
 
@@ -812,19 +1021,25 @@ BF2042Portal.Extensions = (function () {
         return {
             id: "addBlock",
             displayText: "Add Block >",
-            scopeType: _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE,
+            scopeType: BlocklyWrapper.ContextMenu.ScopeType.WORKSPACE,
             weight: 100,
             preconditionFn: precondition,
-            callback: callback
-        }
+            callback: callback,
+        };
     }
 
     function separatorWorkspace() {
-        return separator("separatorWorkspace", _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE);
+        return separator(
+            "separatorWorkspace",
+            BlocklyWrapper.ContextMenu.ScopeType.WORKSPACE,
+        );
     }
 
     function separatorBlock() {
-        return separator("separatorBlock", _Blockly.ContextMenuRegistry.ScopeType.BLOCK);
+        return separator(
+            "separatorBlock",
+            BlocklyWrapper.ContextMenu.ScopeType.BLOCK,
+        );
     }
 
     function separator(id, scope) {
@@ -834,17 +1049,25 @@ BF2042Portal.Extensions = (function () {
             scopeType: scope,
             weight: 100,
             preconditionFn: () => "disabled",
-            callback: () => {}
-        }
+            callback: () => {},
+        };
     }
 
     //Blockly functions - Menus
     function optionsWorkspace() {
-        return createMenu("optionsWorkspace", "Options", _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE);
+        return createMenu(
+            "optionsWorkspace",
+            "Options",
+            BlocklyWrapper.ContextMenu.ScopeType.WORKSPACE,
+        );
     }
 
     function optionsBlock() {
-        return createMenu("optionsBlock", "Options", _Blockly.ContextMenuRegistry.ScopeType.BLOCK);
+        return createMenu(
+            "optionsBlock",
+            "Options",
+            BlocklyWrapper.ContextMenu.ScopeType.BLOCK,
+        );
     }
 
     function createMenu(id, name, scopeType) {
@@ -857,7 +1080,11 @@ BF2042Portal.Extensions = (function () {
             const subMenuOptions = [];
 
             for (let i = 0; i < menu.options.length; i++) {
-                const subMenuItem = createSubMenuItem(menu.options[i], scopeType, scope);
+                const subMenuItem = createSubMenuItem(
+                    menu.options[i],
+                    scopeType,
+                    scope,
+                );
 
                 if (!subMenuItem) {
                     continue;
@@ -876,8 +1103,8 @@ BF2042Portal.Extensions = (function () {
             weight: 100,
             preconditionFn: precondition,
             callback: callback,
-            options: []
-        }
+            options: [],
+        };
     }
 
     function createSubMenuItem(id, scopeType, scope) {
@@ -885,8 +1112,7 @@ BF2042Portal.Extensions = (function () {
 
         if (id.startsWith("items.")) {
             data = blocklyConfig.items[id.substring("items.".length)];
-        }
-        else if (id.startsWith("menus.")) {
+        } else if (id.startsWith("menus.")) {
             data = blocklyConfig.menus[id.substring("menus.".length)];
         }
 
@@ -895,10 +1121,13 @@ BF2042Portal.Extensions = (function () {
         }
 
         return {
-            text: typeof (data.displayText) === "string" ? data.displayText : data.displayText(scope),
+            text:
+                typeof data.displayText === "string"
+                    ? data.displayText
+                    : data.displayText(scope),
             enabled: data.preconditionFn(scope) === "enabled",
-            callback: () => data.callback(scope)
-        }
+            callback: () => data.callback(scope),
+        };
     }
 
     //Blockly functions - Helpers
@@ -912,20 +1141,19 @@ BF2042Portal.Extensions = (function () {
 
     //Private functions
     function saveXml(blocks) {
-        const workspace = _Blockly.getMainWorkspace();
+        const workspace = BlocklyWrapper.getMainWorkspace();
 
         try {
             let xmlText = "";
 
             if (blocks && blocks.length > 0) {
                 for (let i = 0; i < blocks.length; i++) {
-                    xmlText += blockToXml(blocks[i]);
+                    xmlText += BlocklyWrapper.Xml.blockToXml(blocks[i]);
                 }
 
                 return xmlText;
-            }
-            else {
-                let xmlDom = _Blockly.Xml.workspaceToDom(workspace, true);
+            } else {
+                let xmlDom = BlocklyWrapper.Xml.workspaceToDom(workspace, true);
 
                 const variablesXml = xmlDom.querySelector("variables");
 
@@ -933,9 +1161,11 @@ BF2042Portal.Extensions = (function () {
                     xmlDom.removeChild(variablesXml);
                 }
 
-                return _Blockly.Xml
-                    .domToText(xmlDom)
-                    .replace("<xml xmlns=\"https://developers.google.com/blockly/xml\">", "")
+                return BlocklyWrapper.Xml.domToText(xmlDom)
+                    .replace(
+                        '<xml xmlns="https://developers.google.com/blockly/xml">',
+                        "",
+                    )
                     .replace("</xml>", "");
             }
         } catch (e) {
@@ -946,17 +1176,25 @@ BF2042Portal.Extensions = (function () {
     }
 
     function loadJson(data) {
-        const workspace = _Blockly.getMainWorkspace();
+        const workspace = BlocklyWrapper.getMainWorkspace();
 
         try {
-            const variables = _Blockly.Xml.textToDom(data.variables ? data.variables : "<xml />");
-            
-            _Blockly.Xml.domToVariables(variables, workspace);
-            _Blockly.Xml.domToWorkspace(_Blockly.Xml.textToDom(data.mainWorkspace), workspace);
+            const variables = BlocklyWrapper.Xml.textToDom(
+                data.variables ? data.variables : "<xml />",
+            );
+
+            BlocklyWrapper.Xml.domToVariables(variables, workspace);
+            BlocklyWrapper.Xml.domToWorkspace(
+                BlocklyWrapper.Xml.textToDom(data.mainWorkspace),
+                workspace,
+            );
 
             return true;
         } catch (e) {
-            BF2042Portal.Shared.logError("Failed to load workspace from JSON!", e);
+            BF2042Portal.Shared.logError(
+                "Failed to load workspace from JSON!",
+                e,
+            );
         }
 
         return false;
@@ -976,38 +1214,51 @@ BF2042Portal.Extensions = (function () {
 
             const domText = `<xml xmlns="https://developers.google.com/blockly/xml">${xmlText.trim()}</xml>`;
 
-            const xmlDom = _Blockly.Xml.textToDom(domText);
+            const xmlDom = BlocklyWrapper.Xml.textToDom(domText);
 
             //NOTE: Extract variables
-            const variableBlocks = xmlDom.querySelectorAll("block[type='variableReferenceBlock']");
+            const variableBlocks = xmlDom.querySelectorAll(
+                "block[type='variableReferenceBlock']",
+            );
             const variables = [];
 
             variableBlocks.forEach((e) => {
-                const objectType = e.querySelector("field[name='OBJECTTYPE']").textContent;
-                const variableName = e.querySelector("field[name='VAR']").textContent;
+                const objectType = e.querySelector(
+                    "field[name='OBJECTTYPE']",
+                ).textContent;
+                const variableName =
+                    e.querySelector("field[name='VAR']").textContent;
 
-                if (objectType &&
+                if (
+                    objectType &&
                     variableName &&
-                    !variables.find(v => v.objectType === objectType && v.variableName === variableName)
+                    !variables.find(
+                        (v) =>
+                            v.objectType === objectType &&
+                            v.variableName === variableName,
+                    )
                 ) {
                     variables.push({
                         objectType,
-                        variableName
+                        variableName,
                     });
                 }
             });
 
             const variablesXml = document.createElement("variables");
 
-            variables.forEach(e => {
+            variables.forEach((e) => {
                 const variable = document.createElement("variable");
                 variable.setAttribute("type", e.objectType);
                 variable.innerText = e.variableName;
 
                 variablesXml.appendChild(variable);
-            })
+            });
 
-            _Blockly.Xml.domToVariables(variablesXml, _Blockly.getMainWorkspace());
+            BlocklyWrapper.Xml.domToVariables(
+                variablesXml,
+                BlocklyWrapper.getMainWorkspace(),
+            );
 
             //NOTE: Determine a bounding box
             let minX;
@@ -1037,41 +1288,39 @@ BF2042Portal.Extensions = (function () {
 
                 if (x == minX) {
                     block.setAttribute("x", mouseCoords.x);
-                }
-                else {
-                    block.setAttribute("x", (x - minX) + mouseCoords.x);
+                } else {
+                    block.setAttribute("x", x - minX + mouseCoords.x);
                 }
 
                 if (y == minY) {
                     block.setAttribute("y", mouseCoords.y);
-                }
-                else {
-                    block.setAttribute("y", (y - minY) + mouseCoords.y);
+                } else {
+                    block.setAttribute("y", y - minY + mouseCoords.y);
                 }
             }
 
-            _Blockly.Xml.domToWorkspace(xmlDom, _Blockly.getMainWorkspace());
+            BlocklyWrapper.Xml.domToWorkspace(
+                xmlDom,
+                BlocklyWrapper.getMainWorkspace(),
+            );
 
             return true;
         } catch (e) {
-            BF2042Portal.Shared.logError("Failed to load workspace from XML!", e);
+            BF2042Portal.Shared.logError(
+                "Failed to load workspace from XML!",
+                e,
+            );
         }
 
         return false;
     }
 
-    function blockToXml(block) {
-        const xmlDom = _Blockly.Xml.blockToDomWithXY(block, true);
-        _Blockly.Xml.deleteNext(xmlDom);
-
-        const xmlText = _Blockly.Xml.domToText(xmlDom).replace("xmlns=\"https://developers.google.com/blockly/xml\"", "");
-
-        return xmlText;
-    }
-
     //Based on: https://stackoverflow.com/questions/32589197/how-can-i-capitalize-the-first-letter-of-each-word-in-a-string-using-javascript
     function titleCase(str) {
-        return str.split(" ").map(s => s.charAt(0).toUpperCase() + s.substr(1).toLowerCase()).join(" ")
+        return str
+            .split(" ")
+            .map((s) => s.charAt(0).toUpperCase() + s.substr(1).toLowerCase())
+            .join(" ");
     }
 
     //API functions
@@ -1082,8 +1331,12 @@ BF2042Portal.Extensions = (function () {
             blocks = selectedBlocks;
         }
 
-        if (!blocks && (_Blockly.getSelected() || (scope !== undefined && scope.block))) {
-            blocks = [_Blockly.getSelected() || scope.block];
+        if (
+            !blocks &&
+            (BlocklyWrapper.Blocks.getSelected() ||
+                (scope !== undefined && scope.block))
+        ) {
+            blocks = [BlocklyWrapper.Blocks.getSelected() || scope.block];
         }
 
         return blocks;
@@ -1092,32 +1345,48 @@ BF2042Portal.Extensions = (function () {
     function getMouseCoords() {
         return {
             x: mouseCoords.x,
-            y: mouseCoords.y
-        }
+            y: mouseCoords.y,
+        };
     }
 
     function showContextMenuWithBack(options) {
         contextMenuStack.push(lastContextMenu.options);
 
-        _Blockly.ContextMenu.show(lastContextMenu.e, [].concat({
-            text: "< Back",
-            enabled: true,
-            callback: () => {
-                const menu = contextMenuStack.splice(contextMenuStack.length - 1, 1);
+        BlocklyWrapper.ContextMenu.show(
+            lastContextMenu.e,
+            []
+                .concat(
+                    {
+                        text: "< Back",
+                        enabled: true,
+                        callback: () => {
+                            const menu = contextMenuStack.splice(
+                                contextMenuStack.length - 1,
+                                1,
+                            );
 
-                _Blockly.ContextMenu.show(lastContextMenu.e, menu[0], lastContextMenu.rtl);
-            }
-        }, {
-            text: "---",
-            enabled: false,
-            callback: () => {}
-        }).concat(options), lastContextMenu.rtl);
+                            BlocklyWrapper.ContextMenu.show(
+                                lastContextMenu.e,
+                                menu[0],
+                                lastContextMenu.rtl,
+                            );
+                        },
+                    },
+                    {
+                        text: "---",
+                        enabled: false,
+                        callback: () => {},
+                    },
+                )
+                .concat(options),
+            lastContextMenu.rtl,
+        );
     }
 
     //Initialize functions
     function init() {
         cssFixes();
-        
+
         hookContextMenu();
         hookBlockly();
 
@@ -1132,10 +1401,10 @@ BF2042Portal.Extensions = (function () {
                 showContextMenuWithBack: showContextMenuWithBack,
                 registerMenu: registerMenu,
                 registerItem: registerItem,
-                createMenu: createMenu
+                createMenu: createMenu,
             },
             version: BF2042Portal.Startup.getVersion(),
-            pluginManager: BF2042Portal.Startup.getManifest().pluginManager
+            pluginManager: BF2042Portal.Startup.getManifest().pluginManager,
         });
     }
 
@@ -1169,47 +1438,44 @@ BF2042Portal.Extensions = (function () {
     }
 
     function hookContextMenu() {
-        const workspace = _Blockly.getMainWorkspace();
+        const workspace = BlocklyWrapper.getMainWorkspace();
 
         const workspacePrototype = Object.getPrototypeOf(workspace);
-        const originalWorkspaceShowContextMenu = workspacePrototype.showContextMenu;
+        const originalWorkspaceShowContextMenu =
+            workspacePrototype.showContextMenu;
 
         workspacePrototype.showContextMenu = function (e) {
+            //NOTE: Clear the stack every time the content menu is opened at the root
+            contextMenuStack.length = 0;
+
             lastContextMenu = {
                 e: e,
-                options: _Blockly.ContextMenuRegistry.registry.getContextMenuOptions(
-                    _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE, 
-                    {
-                        workspace: this
-                    }
-                ),
-                rtl: this.RTL
+                options:
+                    BlocklyWrapper.ContextMenu.getOptionsForWorkspace(this),
+                rtl: this.RTL,
             };
 
             updateMouseCoords(e);
 
-            return originalWorkspaceShowContextMenu.apply(this,arguments);
-        }
+            return originalWorkspaceShowContextMenu.apply(this, arguments);
+        };
 
-        const blockPrototype = Object.getPrototypeOf(workspace.getTopBlocks()[0])
+        const blockPrototype = Object.getPrototypeOf(
+            workspace.getTopBlocks()[0],
+        );
         const originalBlockShowContextMenu = blockPrototype.showContextMenu;
 
         blockPrototype.showContextMenu = function (e) {
             lastContextMenu = {
                 e: e,
-                options: _Blockly.ContextMenuRegistry.registry.getContextMenuOptions(
-                    _Blockly.ContextMenuRegistry.ScopeType.BLOCK, 
-                    {
-                        block: this
-                    }
-                ),
-                rtl: this.RTL
+                options: BlocklyWrapper.ContextMenu.getOptionsForBlock(this),
+                rtl: this.RTL,
             };
 
             updateMouseCoords(e);
 
-            return originalBlockShowContextMenu.apply(this,arguments);
-        }
+            return originalBlockShowContextMenu.apply(this, arguments);
+        };
     }
 
     function hookBlockly() {
@@ -1234,9 +1500,9 @@ BF2042Portal.Extensions = (function () {
             initializeWorkspace(workspace);
 
             return workspace;
-        }
+        };
 
-        initializeWorkspace(_Blockly.getMainWorkspace());
+        initializeWorkspace(BlocklyWrapper.getMainWorkspace());
     }
 
     function initializeDocumentEvents() {
@@ -1251,13 +1517,13 @@ BF2042Portal.Extensions = (function () {
 
     function initializeBlockly() {
         //NOTE: Register existing items
-        for(const value of _Blockly.ContextMenuRegistry.registry.registry_.values()) {
-            registerItem(value);
+        for (const contentMenuItem of BlocklyWrapper.ContextMenu.getAllItems()) {
+            registerItem(contentMenuItem.value);
         }
 
         //NOTE: Delete existing items
-        _Blockly.ContextMenuRegistry.registry.unregister("cleanWorkspace");
-        _Blockly.ContextMenuRegistry.registry.unregister("workspaceDelete");
+        BlocklyWrapper.ContextMenu.unregisterItem("cleanWorkspace");
+        BlocklyWrapper.ContextMenu.unregisterItem("workspaceDelete");
 
         const optionsWorkspaceMenu = optionsWorkspace();
         optionsWorkspaceMenu.weight = -99;
@@ -1272,7 +1538,7 @@ BF2042Portal.Extensions = (function () {
             "items.toggleToolbox",
             "items.separatorWorkspace",
             "items.exportBlocksWorkspace",
-            "items.importBlocksFromFile"
+            "items.importBlocksFromFile",
         ];
 
         const optionsBlockMenu = optionsBlock();
@@ -1284,8 +1550,8 @@ BF2042Portal.Extensions = (function () {
             "items.toggleInputs",
             "items.toggleCollapse",
             "items.separatorBlock",
-            "items.exportBlocksBlock"
-        ]
+            "items.exportBlocksBlock",
+        ];
 
         registerMenu(optionsWorkspaceMenu);
         registerMenu(optionsBlockMenu);
@@ -1319,7 +1585,7 @@ BF2042Portal.Extensions = (function () {
             "menus.optionsBlock",
             "items.jumpToSubRoutine",
             "items.copyToClipboard",
-            "items.pasteFromClipboard"
+            "items.pasteFromClipboard",
         ];
 
         //TODO: Give plugins a chance to modify this
@@ -1330,8 +1596,7 @@ BF2042Portal.Extensions = (function () {
             if (item.startsWith("items.")) {
                 const itemId = item.substring("items.".length);
                 menuItem = blocklyConfig.items[itemId];
-            }
-            else if (item.startsWith("menus.")) {
+            } else if (item.startsWith("menus.")) {
                 const menuId = item.substring("menus.".length);
                 menuItem = blocklyConfig.menus[menuId];
             }
@@ -1340,7 +1605,7 @@ BF2042Portal.Extensions = (function () {
                 return;
             }
 
-            _Blockly.ContextMenuRegistry.registry.register(menuItem);
+            BlocklyWrapper.ContextMenu.registerItem(menuItem);
         });
     }
 
@@ -1351,21 +1616,25 @@ BF2042Portal.Extensions = (function () {
             type: "mod",
             category: getCategory("RULES"),
             internalName: "modBlock",
-            displayName: titleCase(getTranslation("PYRITE_MOD"))
+            displayName: titleCase(BlocklyWrapper.getTranslation("PYRITE_MOD")),
         });
 
         blockLookup.push({
             type: "rule",
             category: getCategory("RULES"),
             internalName: "ruleBlock",
-            displayName: titleCase(getTranslation("PYRITE_RULE"))
+            displayName: titleCase(
+                BlocklyWrapper.getTranslation("PYRITE_RULE"),
+            ),
         });
 
         blockLookup.push({
             type: "condition",
             category: getCategory("RULES"),
             internalName: "conditionBlock",
-            displayName: titleCase(getTranslation("PYRITE_CONDITION"))
+            displayName: titleCase(
+                BlocklyWrapper.getTranslation("PYRITE_CONDITION"),
+            ),
         });
 
         /*blockLookup.push({
@@ -1379,46 +1648,56 @@ BF2042Portal.Extensions = (function () {
             type: "literal",
             category: getCategory("LITERALS"),
             internalName: "Boolean",
-            displayName: getTranslation("PYRITE_TYPE_BOOLEAN")
+            displayName: BlocklyWrapper.getTranslation("PYRITE_TYPE_BOOLEAN"),
         });
 
         blockLookup.push({
             type: "literal",
             category: getCategory("LITERALS"),
             internalName: "Number",
-            displayName: getTranslation("PYRITE_TYPE_NUMBER")
+            displayName: BlocklyWrapper.getTranslation("PYRITE_TYPE_NUMBER"),
         });
 
         blockLookup.push({
             type: "literal",
             category: getCategory("LITERALS"),
             internalName: "Text",
-            displayName: getTranslation("PYRITE_TYPE_STRING")
+            displayName: BlocklyWrapper.getTranslation("PYRITE_TYPE_STRING"),
         });
 
         blockLookup.push({
             type: "action",
             category: getCategory("CONVENIENCE"),
             internalName: "ArrayContains",
-            displayName: getTranslation("PYRITE_CONVENIENCE_ARRAYCONTAINS")
+            displayName: BlocklyWrapper.getTranslation(
+                "PYRITE_CONVENIENCE_ARRAYCONTAINS",
+            ),
         });
 
         blockLookup.push({
             type: "action",
             category: getCategory("CONVENIENCE"),
             internalName: "IndexOfArrayValue",
-            displayName: getTranslation("PYRITE_CONVENIENCE_INDEXOFARRAYVALUE")
+            displayName: BlocklyWrapper.getTranslation(
+                "PYRITE_CONVENIENCE_INDEXOFARRAYVALUE",
+            ),
         });
 
         blockLookup.push({
             type: "action",
             category: getCategory("CONVENIENCE"),
             internalName: "RemoveFromArray",
-            displayName: getTranslation("PYRITE_CONVENIENCE_REMOVEFROMARRAY")
+            displayName: BlocklyWrapper.getTranslation(
+                "PYRITE_CONVENIENCE_REMOVEFROMARRAY",
+            ),
         });
 
         //Blocks - Selection Lists
-        const selectionLists = [...new Set(blockDefinitions.selectionLists.map(e => e.listType + "Item"))];
+        const selectionLists = [
+            ...new Set(
+                blockDefinitions.selectionLists.map((e) => e.listType + "Item"),
+            ),
+        ];
 
         //Blocks - Values (Yellow)
         for (let index = 0; index < blockDefinitions.values.length; index++) {
@@ -1428,12 +1707,13 @@ BF2042Portal.Extensions = (function () {
             if (!element.category) {
                 if (element.name == "GetVariable") {
                     element.category = "VARIABLES";
-                }
-                else if (selectionLists.includes(element.name)) {
+                } else if (selectionLists.includes(element.name)) {
                     element.category = "SELECTION_LISTS";
-                }
-                else {
-                    BF2042Portal.Shared.logError("No category found for value-block", element);
+                } else {
+                    BF2042Portal.Shared.logError(
+                        "No category found for value-block",
+                        element,
+                    );
                 }
             }
 
@@ -1441,7 +1721,9 @@ BF2042Portal.Extensions = (function () {
                 type: "value",
                 category: getCategory(element.category),
                 internalName: element.name,
-                displayName: getTranslation(element.displayNameSID) || element.name
+                displayName:
+                    BlocklyWrapper.getTranslation(element.displayNameSID) ||
+                    element.name,
             });
         }
 
@@ -1453,9 +1735,11 @@ BF2042Portal.Extensions = (function () {
             if (!element.category) {
                 if (element.name == "SetVariable") {
                     element.category = "VARIABLES";
-                }
-                else {
-                    BF2042Portal.Shared.logError("No category found for action-block", element);
+                } else {
+                    BF2042Portal.Shared.logError(
+                        "No category found for action-block",
+                        element,
+                    );
                 }
             }
 
@@ -1463,34 +1747,43 @@ BF2042Portal.Extensions = (function () {
                 type: "action",
                 category: getCategory(element.category),
                 internalName: element.name,
-                displayName: getTranslation(element.displayNameSID) || element.name
+                displayName:
+                    BlocklyWrapper.getTranslation(element.displayNameSID) ||
+                    element.name,
             });
         }
 
         //Blocks - Controls Actions
-        for (let index = 0; index < blockDefinitions.controlActions.length; index++) {
+        for (
+            let index = 0;
+            index < blockDefinitions.controlActions.length;
+            index++
+        ) {
             const element = blockDefinitions.controlActions[index];
 
             blockLookup.push({
                 type: "controlAction",
                 category: getCategory("CONTROL_ACTIONS"),
                 internalName: element.name,
-                displayName: getTranslation(element.displayNameSID) || element.name
+                displayName:
+                    BlocklyWrapper.getTranslation(element.displayNameSID) ||
+                    element.name,
             });
         }
 
         //Categories
-        blockLookup.forEach(entry => {
-            const existingCategory = blockCategories.find(e => e.internalName === (entry.category || "Other"));
+        blockLookup.forEach((entry) => {
+            const existingCategory = blockCategories.find(
+                (e) => e.internalName === (entry.category || "Other"),
+            );
 
             if (existingCategory) {
                 existingCategory.contents.push(entry);
-            }
-            else {
+            } else {
                 blockCategories.push({
                     internalName: entry.category || "Other",
                     displayName: titleCase(entry.category || "Other"),
-                    contents: [entry]
+                    contents: [entry],
                 });
             }
         });
@@ -1500,19 +1793,9 @@ BF2042Portal.Extensions = (function () {
                 return undefined;
             }
 
-            return getTranslation("PYRITE_TOOLBOX_" + key.replace(" ", "_").toUpperCase());
-        }
-
-        function getTranslation(key) {
-            const splitKeys = key.split(".");
-
-            let firstElement = Blockly.Msg.Msg[splitKeys[0]];
-
-            for (let index = 1; index < splitKeys.Length; index++) {
-                firstElement = firstElement[splitKeys[index]];
-            }
-
-            return firstElement;
+            return BlocklyWrapper.getTranslation(
+                "PYRITE_TOOLBOX_" + key.replace(" ", "_").toUpperCase(),
+            );
         }
     }
 
@@ -1522,7 +1805,10 @@ BF2042Portal.Extensions = (function () {
         let activeBlock;
 
         workspace.addChangeListener(function (e) {
-            if (e.type === _Blockly.Events.CLICK || e.type === _Blockly.Events.SELECTED) {
+            if (
+                e.type === BlocklyWrapper.Events.CLICK ||
+                e.type === BlocklyWrapper.Events.SELECTED
+            ) {
                 if (shiftKey) {
                     if (!e.blockId) {
                         return;
@@ -1536,25 +1822,29 @@ BF2042Portal.Extensions = (function () {
                         selectedBlocks.push(block);
 
                         block.setHighlighted(true);
-                    }
-                    else {
+                    } else {
                         selectedBlocks.splice(selectedIndex, 1);
 
                         block.setHighlighted(false);
                     }
-                }
-                else if(selectedBlocks.length > 0) {
-                    selectedBlocks.forEach(block => {
+                } else if (selectedBlocks.length > 0) {
+                    selectedBlocks.forEach((block) => {
                         block.setHighlighted(false);
                     });
 
                     selectedBlocks.length = 0;
                 }
-            }
-            else if (e.type === _Blockly.Events.BLOCK_DRAG && !e.isStart) {
+            } else if (
+                e.type === BlocklyWrapper.Events.BLOCK_DRAG &&
+                !e.isStart
+            ) {
                 activeBlock = e.blockId;
-            }
-            else if (e.type === _Blockly.Events.MOVE && e.newCoordinate && e.oldCoordinate && activeBlock) {
+            } else if (
+                e.type === BlocklyWrapper.Events.MOVE &&
+                e.newCoordinate &&
+                e.oldCoordinate &&
+                activeBlock
+            ) {
                 const ignoreBlock = activeBlock;
 
                 activeBlock = undefined;
@@ -1577,21 +1867,23 @@ BF2042Portal.Extensions = (function () {
 
     //Based on: https://groups.google.com/g/blockly/c/LXnMujtEzJY/m/FKQjI4OwAwAJ
     function updateMouseCoords(event) {
-        const mainWorkspace = _Blockly.getMainWorkspace();
+        const mainWorkspace = BlocklyWrapper.getMainWorkspace();
 
         if (!mainWorkspace) {
             return;
         }
 
         // Gets the x and y position of the cursor relative to the workspace's parent svg element.
-        const mouseXY = _Blockly.browserEvents.mouseToSvg(
+        const mouseXY = BlocklyWrapper.Xml.mouseToSvg(
             event,
             mainWorkspace.getParentSvg(),
-            mainWorkspace.getInverseScreenCTM()
+            mainWorkspace.getInverseScreenCTM(),
         );
 
         // Gets where the visible workspace starts in relation to the workspace's parent svg element.
-        const absoluteMetrics = mainWorkspace.getMetricsManager().getAbsoluteMetrics();
+        const absoluteMetrics = mainWorkspace
+            .getMetricsManager()
+            .getAbsoluteMetrics();
 
         // In workspace coordinates 0,0 is where the visible workspace starts.
         mouseXY.x -= absoluteMetrics.left;
@@ -1612,50 +1904,52 @@ BF2042Portal.Extensions = (function () {
     function hotfixDomMutations() {
         function hotfixBlock(block) {
             //NOTE: Don't fix blocks that don't have state information or implement mutations properly
-            if(
-                !block.saveExtraState || 
-                !block.loadExtraState || 
+            if (
+                !block.saveExtraState ||
+                !block.loadExtraState ||
                 (block.mutationToDom && block.domToMutation)
             ) {
                 return;
             }
 
             //NOTE: Always replace this implementation, since it's not needed for backwards compatibility.
-            block.mutationToDom = function() {
-                const mutation = _Blockly.utils.xml.createElement("mutation");
-                mutation.setAttribute("portal-extensions-state", JSON.stringify(this.saveExtraState()));
+            block.mutationToDom = function () {
+                const mutation = BlocklyWrapper.Xml.createElement("mutation");
+                mutation.setAttribute(
+                    "portal-extensions-state",
+                    JSON.stringify(this.saveExtraState()),
+                );
 
                 return mutation;
-            }
+            };
 
             const originalDomToMutation = block.domToMutation;
-            
-            block.domToMutation = function(mutation) {
-                const stateAttribute = mutation.getAttribute("portal-extensions-state");
 
-                if(stateAttribute) {
+            block.domToMutation = function (mutation) {
+                const stateAttribute = mutation.getAttribute(
+                    "portal-extensions-state",
+                );
+
+                if (stateAttribute) {
                     this.loadExtraState(JSON.parse(stateAttribute));
-                }
-                else if(originalDomToMutation) {
+                } else if (originalDomToMutation) {
                     originalDomToMutation.apply(this, arguments);
                 }
-            }
+            };
         }
 
         //NOTE: Fix the Block-classes
-        for(const blockId in _Blockly.Blocks) {
-            const block = _Blockly.Blocks[blockId];
-        
-            hotfixBlock(block);
+        for (const block of BlocklyWrapper.Blocks.getAllClasses()) {
+            hotfixBlock(block.value);
         }
 
         //NOTE: Fix the Blocks that are already instanced
-        for(const block of _Blockly.getMainWorkspace().blockDB.values()) {
-            hotfixBlock(block);
+        for (const block of BlocklyWrapper.Blocks.getAllInstances()) {
+            hotfixBlock(block.value);
         }
     }
 
     return {
-        init: init
-    }
+        init: init,
+    };
 })();

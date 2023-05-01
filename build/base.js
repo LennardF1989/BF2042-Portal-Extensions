@@ -11,26 +11,24 @@ const baseExtensionFiles = [
     "options/css/default.css",
     "options/js/app.js",
     "options/index.html",
-    "web/app.js"
+    "web/app.js",
 ];
 
 function prepareWebFiles(files, outputPath) {
     const finalOutputPath = "dist/" + outputPath;
 
-    const finalFiles = [
-        ...files
-    ];
+    const finalFiles = [...files];
 
     fs.mkdirSync(finalOutputPath, {
-        recursive: true
+        recursive: true,
     });
 
-    finalFiles.forEach(file => {
+    finalFiles.forEach((file) => {
         const filePath = path.parse(file);
 
         if (filePath.dir !== "") {
             fs.mkdirSync(`${finalOutputPath}/${filePath.dir}`, {
-                recursive: true
+                recursive: true,
             });
         }
 
@@ -41,21 +39,18 @@ function prepareWebFiles(files, outputPath) {
 function prepareBrowserFiles(files, outputPath, manifestTransformFileName) {
     const finalOutputPath = "temp/" + outputPath;
 
-    const finalFiles = [
-        ...baseExtensionFiles,
-        ...files
-    ];
+    const finalFiles = [...baseExtensionFiles, ...files];
 
     fs.mkdirSync(finalOutputPath, {
-        recursive: true
+        recursive: true,
     });
 
-    finalFiles.forEach(file => {
+    finalFiles.forEach((file) => {
         const filePath = path.parse(file);
 
         if (filePath.dir !== "") {
             fs.mkdirSync(`${finalOutputPath}/${filePath.dir}`, {
-                recursive: true
+                recursive: true,
             });
         }
 
@@ -66,24 +61,29 @@ function prepareBrowserFiles(files, outputPath, manifestTransformFileName) {
     const manifestTransform = require(`../src/browser/${manifestTransformFileName}`);
     const combinedManifest = { ...manifest, ...manifestTransform };
 
-    fs.writeFileSync(`${finalOutputPath}/manifest.json`, JSON.stringify(combinedManifest, null, "    "));
+    fs.writeFileSync(
+        `${finalOutputPath}/manifest.json`,
+        JSON.stringify(combinedManifest, null, "    "),
+    );
 }
 
 function packExtension(outputPath, outputFileName) {
-    if(hasFlag("--nopack")) {
+    if (hasFlag("--nopack")) {
         return;
     }
 
     const output = fs.createWriteStream(`temp/${outputFileName}`, {
-        flags: "w"
+        flags: "w",
     });
 
     const archive = archiver("zip");
 
     output.on("close", function () {
-        console.log(`${outputFileName} has been created with ${archive.pointer()} bytes.`);
+        console.log(
+            `${outputFileName} has been created with ${archive.pointer()} bytes.`,
+        );
     });
-    
+
     archive.pipe(output);
     archive.directory(`temp/${outputPath}`, false);
     archive.finalize();
@@ -96,5 +96,5 @@ function hasFlag(flag) {
 module.exports = {
     prepareWebFiles: prepareWebFiles,
     prepareBrowserFiles: prepareBrowserFiles,
-    packExtension: packExtension
+    packExtension: packExtension,
 };

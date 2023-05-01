@@ -13,7 +13,7 @@
         preconditionFn: () => "enabled",
         callback: function () {
             console.log(plugin.getExtensionVersion());
-        }
+        },
     };
 
     const testUrl = {
@@ -24,7 +24,7 @@
         preconditionFn: () => "enabled",
         callback: function () {
             console.log(plugin.getUrl("manifest.json"));
-        }
+        },
     };
 
     const testErrorLog = {
@@ -35,7 +35,7 @@
         preconditionFn: () => "enabled",
         callback: function () {
             BF2042Portal.Shared.logError("Error Test", "Error Test");
-        }
+        },
     };
 
     const testClipboard = {
@@ -45,11 +45,14 @@
         weight: 100,
         preconditionFn: () => "enabled",
         callback: async function () {
-            await BF2042Portal.Shared.copyTextToClipboard("This text has been copied to and pasted from the clipboard!");
-            const pasteResult = await BF2042Portal.Shared.pasteTextFromClipboard();
+            await BF2042Portal.Shared.copyTextToClipboard(
+                "This text has been copied to and pasted from the clipboard!",
+            );
+            const pasteResult =
+                await BF2042Portal.Shared.pasteTextFromClipboard();
 
             console.log(pasteResult);
-        }
+        },
     };
 
     const testSelectedBlocks = function (id, scope) {
@@ -69,7 +72,7 @@
             scopeType: scope,
             weight: 100,
             preconditionFn: precondition,
-            callback: callback
+            callback: callback,
         };
     };
 
@@ -88,7 +91,7 @@
             scopeType: scope,
             weight: 100,
             preconditionFn: precondition,
-            callback: callback
+            callback: callback,
         };
     };
 
@@ -98,16 +101,20 @@
         }
 
         function callback(scope) {
-            const menuItems = [{
-                text: "Option 1",
-                enabled: true,
-                callback: () => console.log("Option 1 has been chosen!", scope)
-            },
-            {
-                text: "Option 2",
-                enabled: true,
-                callback: () => console.log("Option 2 has been chosen!", scope)
-            }]
+            const menuItems = [
+                {
+                    text: "Option 1",
+                    enabled: true,
+                    callback: () =>
+                        console.log("Option 1 has been chosen!", scope),
+                },
+                {
+                    text: "Option 2",
+                    enabled: true,
+                    callback: () =>
+                        console.log("Option 2 has been chosen!", scope),
+                },
+            ];
 
             plugin.showContextMenuWithBack(menuItems);
         }
@@ -118,18 +125,40 @@
             scopeType: scope,
             weight: 100,
             preconditionFn: precondition,
-            callback: callback
+            callback: callback,
         };
     };
 
-    const testSelectedBlocksWorkspace = testSelectedBlocks("testSelectedBlocksWorkspace", _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE);
-    const testSelectedBlocksBlock = testSelectedBlocks("testSelectedBlocksBlock", _Blockly.ContextMenuRegistry.ScopeType.BLOCK);
-    const testMouseCoordsWorkspace = testMouseCoords("testMouseCoordsWorkspace", _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE);
-    const testMouseCoordsBlock = testMouseCoords("testMouseCoordsBlock", _Blockly.ContextMenuRegistry.ScopeType.BLOCK);
-    const testCustomContextMenuWorkspace = testCustomContextMenu("testCustomContextMenuWorkspace", _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE);
-    const testCustomContextMenuBlock = testCustomContextMenu("testCustomContextMenuBlock", _Blockly.ContextMenuRegistry.ScopeType.BLOCK);
+    const testSelectedBlocksWorkspace = testSelectedBlocks(
+        "testSelectedBlocksWorkspace",
+        _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE,
+    );
+    const testSelectedBlocksBlock = testSelectedBlocks(
+        "testSelectedBlocksBlock",
+        _Blockly.ContextMenuRegistry.ScopeType.BLOCK,
+    );
+    const testMouseCoordsWorkspace = testMouseCoords(
+        "testMouseCoordsWorkspace",
+        _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE,
+    );
+    const testMouseCoordsBlock = testMouseCoords(
+        "testMouseCoordsBlock",
+        _Blockly.ContextMenuRegistry.ScopeType.BLOCK,
+    );
+    const testCustomContextMenuWorkspace = testCustomContextMenu(
+        "testCustomContextMenuWorkspace",
+        _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE,
+    );
+    const testCustomContextMenuBlock = testCustomContextMenu(
+        "testCustomContextMenuBlock",
+        _Blockly.ContextMenuRegistry.ScopeType.BLOCK,
+    );
 
-    const testWorkspaceMenu = plugin.createMenu("testWorkspace", "Test", _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE);
+    const testWorkspaceMenu = plugin.createMenu(
+        "testWorkspace",
+        "Test",
+        _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE,
+    );
     testWorkspaceMenu.options = [
         "items.testExtensionVersion",
         "items.testUrl",
@@ -139,22 +168,30 @@
         "items.testMouseCoordsWorkspace",
         "items.separatorWorkspace",
         "menus.testSubMenuWorkspace",
-        "items.testCustomContextMenuWorkspace"
+        "items.testCustomContextMenuWorkspace",
     ];
 
-    const testSubMenuWorkspace = plugin.createMenu("testSubMenuWorkspace", "Sub Menu", _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE);
+    const testSubMenuWorkspace = plugin.createMenu(
+        "testSubMenuWorkspace",
+        "Sub Menu",
+        _Blockly.ContextMenuRegistry.ScopeType.WORKSPACE,
+    );
     testSubMenuWorkspace.options = [
         "items.testExtensionVersion",
         "items.separatorWorkspace",
         "menus.testWorkspace",
     ];
 
-    const testBlockMenu = plugin.createMenu("testBlock", "Test", _Blockly.ContextMenuRegistry.ScopeType.BLOCK);
+    const testBlockMenu = plugin.createMenu(
+        "testBlock",
+        "Test",
+        _Blockly.ContextMenuRegistry.ScopeType.BLOCK,
+    );
     testBlockMenu.options = [
         "items.testSelectedBlocksBlock",
         "items.testMouseCoordsBlock",
         "items.separatorBlock",
-        "items.testCustomContextMenuBlock"
+        "items.testCustomContextMenuBlock",
     ];
 
     plugin.registerMenu(testWorkspaceMenu);
