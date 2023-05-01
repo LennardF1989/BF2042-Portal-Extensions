@@ -7,7 +7,7 @@
         "trailingComma": "all"
     },
     "scripts": {
-        "build:web": "tsc",
+        "build:web": "vite build",
         "build:browser:chromium": "node build/chromium.js",
         "build:browser:firefox": "node build/firefox.js",
         "build:browser:all": "node build/build.js",
@@ -15,13 +15,22 @@
         "dev:source:browser": "nodemon --ext * --watch src/browser --exec npm run build:browser:all:nopack",
         "dev:source:web": "nodemon --ext * --watch src/web --exec npm run build:web",
         "dev:server": "live-server --port=1989 --cors --no-browser .",
-        "prettier": "prettier --write \"**/*.{js,ts,css,html,json}\""
+        "prettier": "prettier --write \"**/*.{js,ts,css,html,json}\"",
+        "eslint": "eslint ./src/web",
+        "typecheck": "tsc --noEmit",
+        "lint": "npm run eslint && npm run typecheck"
     },
     "dependencies": {
+        "@typescript-eslint/eslint-plugin": "5.59.2",
+        "@typescript-eslint/parser": "5.59.2",
         "archiver": "5.3.1",
         "nodemon": "2.0.20",
         "live-server": "1.2.1",
         "typescript": "4.8.4",
-        "prettier": "2.8.8"
+        "prettier": "2.8.8",
+        "eslint": "8.39.0",
+        "vite": "4.3.3",
+        "vite-plugin-eslint": "1.8.1",
+        "blockly": "9.2.1"
     }
 }

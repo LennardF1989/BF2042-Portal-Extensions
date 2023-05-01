@@ -1,10 +1,11 @@
 {
     "compilerOptions": {
-        "lib": ["dom", "ES2020"],
+        "module": "CommonJS",
+        "lib": ["ES2020", "dom"],
         "target": "ES2020",
         "sourceMap": true,
-        "outFile": "./dist/latest/app.js"
+        "declaration": true,
+        "noImplicitAny": true
     },
-    "include": ["src/web/**/*"],
-    "exclude": []
+    "include": ["src/web/**/*"]
 }

@@ -1,0 +1,6 @@
+dist
+**/vendors
+res
+temp
+.eslintrc.js
+vite.config.ts

@@ -1,92 +1,94 @@
-/// <reference path="App.ts"/>
+let pasteTextFromClipboardImplementation: () => Promise<string> =
+    pasteTextFromClipboardDefault;
 
-BF2042Portal.Shared = (function () {
-    let pasteTextFromClipboardImplementation = pasteTextFromClipboardDefault;
-    let pasteTextFromClipboardFirefoxCallback = (_text: string) => {};
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+let pasteTextFromClipboardFirefoxCallback = (_text: string): void => {
+    //Do nothing
+};
 
-    function init() {
-        //NOTE: If readText is not available, we are going to assume this is Firefox.
-        if (navigator.clipboard.readText !== undefined) {
-            return;
-        }
-
-        pasteTextFromClipboardImplementation = pasteTextFromClipboardFirefox;
-
-        window.addEventListener(
-            "bf2042-portal-extensions-paste",
-            async function (message: any) {
-                pasteTextFromClipboardFirefoxCallback(message.detail);
-            },
-        );
+export function init(): void {
+    //NOTE: If readText is not available, we are going to assume this is Firefox.
+    if (navigator.clipboard.readText !== undefined) {
+        return;
     }
 
-    async function copyTextToClipboard(text) {
-        return await navigator.clipboard.writeText(text);
-    }
+    pasteTextFromClipboardImplementation = pasteTextFromClipboardFirefox;
 
-    async function copyBlobToClipboard(blobData) {
-        return await navigator.clipboard.write([
-            new ClipboardItem({ [blobData.type]: blobData }),
-        ]);
-    }
+    window.addEventListener(
+        "bf2042-portal-extensions-paste",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        async function (message: any) {
+            pasteTextFromClipboardFirefoxCallback(message.detail);
+        },
+    );
+}
 
-    async function pasteTextFromClipboard() {
-        return await pasteTextFromClipboardImplementation();
-    }
+async function copyTextToClipboard(text: string): Promise<void> {
+    return await navigator.clipboard.writeText(text);
+}
 
-    async function pasteTextFromClipboardDefault() {
-        return await navigator.clipboard.readText();
-    }
+async function copyBlobToClipboard(blobData: Blob): Promise<void> {
+    return await navigator.clipboard.write([
+        new ClipboardItem({ [blobData.type]: blobData }),
+    ]);
+}
 
-    async function pasteTextFromClipboardFirefox(): Promise<string> {
-        return new Promise((resolve, reject) => {
-            pasteTextFromClipboardFirefoxCallback = (clipboard) => {
-                if (clipboard) {
-                    resolve(clipboard);
-                } else {
-                    reject();
-                }
-            };
+async function pasteTextFromClipboard(): Promise<string> {
+    return await pasteTextFromClipboardImplementation();
+}
 
-            const event = new Event("bf2042-portal-extensions-paste");
-            document.dispatchEvent(event);
-        });
-    }
+async function pasteTextFromClipboardDefault(): Promise<string> {
+    return await navigator.clipboard.readText();
+}
 
-    function isCopyBlobToClipboardSupported() {
-        return window.ClipboardItem !== undefined;
-    }
-
-    function logError(message, error) {
-        console.log(`[ERROR] ${message}`, error);
-    }
-
-    function loadFromLocalStorage(key) {
-        const data = localStorage.getItem(key);
-
-        try {
-            if (typeof data === "string") {
-                return JSON.parse(data);
+async function pasteTextFromClipboardFirefox(): Promise<string> {
+    // eslint-disable-next-line @typescript-eslint/typedef
+    return new Promise<string>((resolve, reject) => {
+        pasteTextFromClipboardFirefoxCallback = (clipboard: string): void => {
+            if (clipboard) {
+                resolve(clipboard);
+            } else {
+                reject();
             }
-        } catch (e) {
-            //Do nothing
+        };
+
+        const event: Event = new Event("bf2042-portal-extensions-paste");
+        document.dispatchEvent(event);
+    });
+}
+
+function isCopyBlobToClipboardSupported(): boolean {
+    return window.ClipboardItem !== undefined;
+}
+
+function logError(message: string, error: Error): void {
+    console.log(`[ERROR] ${message}`, error);
+}
+
+function loadFromLocalStorage<T>(key: string): T {
+    const data: string = localStorage.getItem(key);
+
+    try {
+        if (typeof data === "string") {
+            return JSON.parse(data) as T;
         }
-
-        return {};
+    } catch (e) {
+        //Do nothing
     }
 
-    function saveToLocalStorage(key, data) {
-        localStorage.setItem(key, JSON.stringify(data));
-    }
+    return {} as T;
+}
 
-    return {
-        init: init,
-        copyTextToClipboard: copyTextToClipboard,
-        copyBlobToClipboard: copyBlobToClipboard,
-        pasteTextFromClipboard: pasteTextFromClipboard,
-        isCopyBlobToClipboardSupported: isCopyBlobToClipboardSupported,
-        loadFromLocalStorage: loadFromLocalStorage,
-        saveToLocalStorage: saveToLocalStorage,
-        logError: logError,
-    };
-})();
+function saveToLocalStorage<T>(key: string, data: T): void {
+    localStorage.setItem(key, JSON.stringify(data));
+}
+
+export default {
+    copyTextToClipboard: copyTextToClipboard,
+    copyBlobToClipboard: copyBlobToClipboard,
+    pasteTextFromClipboard: pasteTextFromClipboard,
+    isCopyBlobToClipboardSupported: isCopyBlobToClipboardSupported,
+    loadFromLocalStorage: loadFromLocalStorage,
+    saveToLocalStorage: saveToLocalStorage,
+    logError: logError,
+};
