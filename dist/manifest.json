@@ -1,7 +1,15 @@
 {
     "versions": {
+        "stable": {
+            "name": "Stable (2.0.0-pr)",
+            "url": "https://bf2042-portal-extensions.lennardf1989.com/dist/stable/app.js",
+            "pluginManager": {
+                "baseUrl": "https://bf2042-portal-extensions.lennardf1989.com/plugins/plugin-manager",
+                "main": "index.js"
+            }
+        },
         "latest": {
-            "name": "Latest (bleeding edge)",
+            "name": "Latest (master)",
             "url": "https://bf2042-portal-extensions.lennardf1989.com/dist/latest/app.js",
             "pluginManager": {
                 "baseUrl": "https://bf2042-portal-extensions.lennardf1989.com/plugins/plugin-manager",

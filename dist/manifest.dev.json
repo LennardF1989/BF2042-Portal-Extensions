@@ -1,7 +1,15 @@
 {
     "versions": {
+        "stable": {
+            "name": "Stable (2.0.0-pr)",
+            "url": "http://localhost:1989/dist/stable/app.js",
+            "pluginManager": {
+                "baseUrl": "http://localhost:1989/plugins/plugin-manager",
+                "main": "index.js"
+            }
+        },
         "latest": {
-            "name": "Latest (bleeding edge)",
+            "name": "Latest (master)",
             "url": "http://localhost:1989/dist/latest/app.js",
             "pluginManager": {
                 "baseUrl": "http://localhost:1989/plugins/plugin-manager",
