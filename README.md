@@ -1,5 +1,5 @@
 # BF2042 Portal Extensions
-> NOTE! As of v2.0.0 the extension is purposely split into a Browser Extension and a Web Extension. The Browser Extension will load a Web Extension of your choice, which in turn also responsible for managing plugins. The recommended Web Extension comes with a default Plugin Manager. In order to load additional plugins, you can open the Plugin Manager by right-clicking a Blockly workspace and going into Options > Plugin Manager.
+> NOTE! As of v2.0.0 the extension is purposely split into a Browser Extension with minimal functionality and a Web Extension that does the rest as described below. The Browser Extension will load a Web Extension of your choice, which in turn is also responsible for managing plugins. The recommended Web Extension comes with a default Plugin Manager. In order to load additional plugins, you can open the Plugin Manager by right-clicking a Blockly workspace and going into Options > Plugin Manager.
 
 This extension adds additional functionality to the BF2042 Portal Rules Editor.
 

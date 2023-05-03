@@ -64,7 +64,7 @@ While above security measures are in place, as a plugin developer you can choose
 
 You will still have to update your plugin to update the manifest!
 
-### Runtime SDK
+## Runtime SDK
 When your plugin loads, it's possible to request a Runtime SDK from the extension. 
 
 Currently, the feature-set is very limited, but you can do the following:
