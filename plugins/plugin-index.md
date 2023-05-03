@@ -4,6 +4,7 @@ A curated list of all known plugins, sorted by alphabet. Create an Issue to have
 | Name | Description | Author | Links |
 |-|-|-|-|
 | Dark Context Menu | Turn the context menu dark | LennardF1989 | [Source](https://github.com/LennardF1989/BF2042-Portal-Extensions/tree/master/plugins/dark-context-menu) / [Manifest](https://bf2042-portal-extensions.lennardf1989.com/plugins/dark-context-menu/manifest.json)
+| Disable Read-only | Disables read-only on a workspace to enable selection and the context menu | LennardF1989 | [Source](https://github.com/LennardF1989/BF2042-Portal-Extensions/tree/master/plugins/disable-readonly) / [Manifest](https://bf2042-portal-extensions.lennardf1989.com/plugins/disable-readonly/manifest.json)
 | Portal Unleashed | A Battlefield Portal scripting tool | [Ludonope](https://github.com/Ludonope) | [Source](https://github.com/Ludonope/BFPortalUnleashed) / [Manifest](https://ludonope.github.io/BFPortalUnleashed/dist/manifest.json)
 | Red Variables | Turn variable blocks red	| Gambit | [Source](https://github.com/LennardF1989/BF2042-Portal-Extensions/tree/master/plugins/red-variables) / [Manifest](https://bf2042-portal-extensions.lennardf1989.com/plugins/red-variables/manifest.json)
 | Snippets | Insert snippets of blocks to your portal workspace | [TheOzzy](https://github.com/The0zzy) | [Source](https://github.com/The0zzy/bf2042-portal-snippet-plugin) / [Manifest](https://the0zzy.github.io/bf2042-portal-snippet-plugin/manifest.json)

@@ -1,0 +1,8 @@
+{
+    "id": "disable-readonly",
+    "name": "Disable Read-only",
+    "version": "1.0.0",
+    "description": "Disables read-only on a workspace to enable selection and the context menu",
+    "author": "LennardF1989",
+    "main": "index.js"
+}

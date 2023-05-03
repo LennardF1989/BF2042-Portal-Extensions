@@ -258,8 +258,6 @@ app.controller("PluginsController", function ($scope, $rootScope, api) {
     }
 
     $rootScope.$on("reloadConfig", function () {
-        alert("trload");
-
         reloadConfig();
 
         $scope.$apply();
