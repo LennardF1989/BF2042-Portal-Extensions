@@ -1,7 +1,7 @@
 /* global angular */
 const app = angular.module("bf2042", ["ngRoute"]);
 
-app.factory("api", function ($scope) {
+app.factory("api", function ($rootScope) {
     let config = {};
 
     function initialize() {
@@ -28,7 +28,7 @@ app.factory("api", function ($scope) {
 
             config = eventData.payload;
 
-            $scope.$broadcast("reloadConfig");
+            $rootScope.$broadcast("reloadConfig");
         }
     }
 
@@ -98,7 +98,7 @@ app.controller("MainController", function (api) {
     });
 });
 
-app.controller("PluginsController", function ($scope, api) {
+app.controller("PluginsController", function ($scope, $rootScope, api) {
     const vm = this;
 
     let config;
@@ -257,7 +257,9 @@ app.controller("PluginsController", function ($scope, api) {
         vm.pluginConfirm = undefined;
     }
 
-    $scope.$on("reloadConfig", function () {
+    $rootScope.$on("reloadConfig", function () {
+        alert("trload");
+
         reloadConfig();
 
         $scope.$apply();
