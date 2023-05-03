@@ -1,6 +1,7 @@
+/* global angular */
 const app = angular.module("bf2042", ["ngRoute"]);
 
-app.factory("api", function () {
+app.factory("api", function ($scope) {
     let config = {};
 
     function initialize() {
@@ -113,9 +114,9 @@ app.controller("PluginsController", function ($scope, api) {
         vm.plugins = config.plugins;
     }
 
-    vm.showModal = function () {
-        resetModal();
-        openModal();
+    vm.showAddModal = function () {
+        resetAddModal();
+        openAddModal();
     };
 
     vm.toggleEnable = function (plugin) {
@@ -136,7 +137,7 @@ app.controller("PluginsController", function ($scope, api) {
             return;
         }
 
-        resetModal();
+        resetAddModal();
 
         vm.pluginManifestUrl = plugin.manifestUrl;
 
@@ -147,7 +148,7 @@ app.controller("PluginsController", function ($scope, api) {
         if (plugin.liveReload) {
             vm.confirmPlugin();
         } else {
-            openModal();
+            openAddModal();
         }
 
         $scope.$apply();
@@ -217,8 +218,8 @@ app.controller("PluginsController", function ($scope, api) {
         if (vm.pluginUpdate && index > -1) {
             config.plugins.splice(index, 1);
         } else if (index > -1) {
-            resetModal();
-            closeModal();
+            resetAddModal();
+            closeAddModal();
 
             return;
         }
@@ -234,19 +235,19 @@ app.controller("PluginsController", function ($scope, api) {
 
         vm.plugins = config.plugins;
 
-        resetModal();
-        closeModal();
+        resetAddModal();
+        closeAddModal();
     };
 
-    function openModal() {
-        $("#add-plugin-modal").modal("show");
+    function openAddModal() {
+        angular.element("#add-plugin-modal").modal("show");
     }
 
-    function closeModal() {
-        $("#add-plugin-modal").modal("hide");
+    function closeAddModal() {
+        angular.element("#add-plugin-modal").modal("hide");
     }
 
-    function resetModal() {
+    function resetAddModal() {
         vm.pluginUpdate = undefined;
         vm.pluginManifestError = undefined;
         vm.pluginManifestUrl = undefined;

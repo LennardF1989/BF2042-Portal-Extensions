@@ -1,3 +1,4 @@
+/* global BF2042Portal, _Blockly */
 (function () {
     const plugin = BF2042Portal.Plugins.getPlugin("test");
 

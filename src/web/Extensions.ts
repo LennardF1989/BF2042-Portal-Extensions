@@ -583,7 +583,7 @@ function openDocumentation(): RegistryItem {
     }
 
     function callback(): void {
-        window.open(documentationUrl, "bf2142_documentation");
+        window.open(documentationUrl, "bf2042_documentation");
     }
 
     return {
@@ -1866,6 +1866,7 @@ function initializeBlocks(blockDefinitions: any): void {
         ...new Set(
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             blockDefinitions.selectionLists.map(
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (e: any) => e.listType + "Item",
             ),
         ),
