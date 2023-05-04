@@ -56,7 +56,7 @@ Done! The extension is now active, simply refresh the BF2042 Portal to see the e
 You can download and load the extension yourself into Firefox:
 
 1. Download the latest `firefox.xpi` [release](https://github.com/LennardF1989/BF2042-Portal-Extensions/releases).
-2. Open up Firefox, and go to [this](about:debugging#/runtime/this-firefox) special page.
+2. Open up Firefox, and go to following special page: `about:debugging#/runtime/this-firefox`
 3. Click "Load Temporary Add-on" and browse to the downloaded file from step 1.
 
 Done! The extension is now active, simply refresh the BF2042 Portal to see the effects in the Rules Editor.
