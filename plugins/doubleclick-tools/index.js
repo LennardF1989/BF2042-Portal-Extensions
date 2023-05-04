@@ -1,7 +1,7 @@
 /* global BF2042Portal, _Blockly */
 (function () {
     const plugin = BF2042Portal.Plugins.getPlugin(
-        "doubleclick-to",
+        "doubleclick-tools",
     );
 
     plugin.initializeWorkspace = function () {
