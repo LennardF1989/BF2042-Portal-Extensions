@@ -1,7 +1,7 @@
 {
     "versions": {
         "stable": {
-            "name": "Stable (2.0.0-pr)",
+            "name": "Stable (2.0.0)",
             "url": "http://localhost:1989/dist/stable/app.js",
             "pluginManager": {
                 "baseUrl": "http://localhost:1989/plugins/plugin-manager",

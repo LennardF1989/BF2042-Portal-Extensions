@@ -1,7 +1,7 @@
 {
     "versions": {
         "stable": {
-            "name": "Stable (2.0.0-pr)",
+            "name": "Stable (2.0.0)",
             "url": "https://bf2042-portal-extensions.lennardf1989.com/dist/stable/app.js",
             "pluginManager": {
                 "baseUrl": "https://bf2042-portal-extensions.lennardf1989.com/plugins/plugin-manager",
