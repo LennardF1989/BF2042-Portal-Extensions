@@ -1,0 +1,8 @@
+{
+    "id": "doubleclick-tools",
+    "name": "Double-click Tools",
+    "version": "1.0.0",
+    "description": "Double-click blocks to expand/collapse, CTRL + Double-click to inline horizontally/vertically.",
+    "author": "LennardF1989",
+    "main": "index.js"
+}
