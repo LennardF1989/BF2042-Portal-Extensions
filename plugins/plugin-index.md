@@ -3,6 +3,7 @@ A curated list of all known plugins, sorted by alphabet. Create an Issue to have
 
 | Name | Description | Author | Links |
 |-|-|-|-|
+| Control Blocks Outline | Add an outline with a darker shade of purple to control blocks | LennardF1989 | [Source](https://github.com/LennardF1989/BF2042-Portal-Extensions/tree/master/plugins/control-blocks-outline) / [Manifest](https://bf2042-portal-extensions.lennardf1989.com/plugins/control-blocks-outline/manifest.json)
 | Dark Context Menu | Turn the context menu dark | LennardF1989 | [Source](https://github.com/LennardF1989/BF2042-Portal-Extensions/tree/master/plugins/dark-context-menu) / [Manifest](https://bf2042-portal-extensions.lennardf1989.com/plugins/dark-context-menu/manifest.json)
 | Disable Read-only | Disables read-only on a workspace to enable selection and the context menu | LennardF1989 | [Source](https://github.com/LennardF1989/BF2042-Portal-Extensions/tree/master/plugins/disable-readonly) / [Manifest](https://bf2042-portal-extensions.lennardf1989.com/plugins/disable-readonly/manifest.json)
 | Double-click Tools | Double-click blocks to expand/collapse, CTRL + Double-click to inline horizontally/vertically. | LennardF1989 | [Source](https://github.com/LennardF1989/BF2042-Portal-Extensions/tree/master/plugins/doubleclick-tools) / [Manifest](https://bf2042-portal-extensions.lennardf1989.com/plugins/doubleclick-tools/manifest.json)

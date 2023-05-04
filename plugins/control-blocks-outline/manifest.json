@@ -1,0 +1,8 @@
+{
+    "id": "control-blocks-outline",
+    "name": "Control Blocks Outline",
+    "version": "1.0.0",
+    "description": "Add an outline with a darker shade of purple to control blocks",
+    "author": "LennardF1989",
+    "main": "index.js"
+}
