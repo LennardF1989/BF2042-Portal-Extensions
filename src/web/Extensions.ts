@@ -1645,6 +1645,26 @@ function hookContextMenu(): void {
         // eslint-disable-next-line prefer-rest-params
         return originalBlockShowContextMenu.apply(this, arguments);
     };
+
+    const originalShow = _Blockly.ContextMenu.show;
+
+    _Blockly.ContextMenu.show = function (
+        e: MouseEvent,
+        options: Array<ContextMenuOption>,
+        rtl: boolean,
+    ): void {
+        //NOTE: Deliberately cast to MenuOption, since only a subset of properties is required.
+        lastContextMenu = {
+            e: e,
+            options: options as unknown as Array<MenuOption>,
+            rtl: rtl,
+        };
+
+        updateMouseCoords(e);
+
+        // eslint-disable-next-line prefer-rest-params
+        originalShow.apply(this, arguments);
+    };
 }
 
 function hookBlockly(): void {
@@ -1806,13 +1826,6 @@ function initializeBlocks(blockDefinitions: any): void {
         ),
     });
 
-    /*blockLookup.push({
-        type: "condition",
-        category: getCategory("LOGIC"),
-        internalName: "Compare",
-        displayName: "Compare"
-    });*/
-
     blockLookup.push({
         type: "literal",
         category: getCategory("LITERALS"),
@@ -1835,8 +1848,8 @@ function initializeBlocks(blockDefinitions: any): void {
     });
 
     blockLookup.push({
-        type: "action",
-        category: getCategory("CONVENIENCE"),
+        type: "value",
+        category: getCategory("ARRAYS"),
         internalName: "ArrayContains",
         displayName: BlocklyWrapper.getTranslation(
             "PYRITE_CONVENIENCE_ARRAYCONTAINS",
@@ -1844,8 +1857,8 @@ function initializeBlocks(blockDefinitions: any): void {
     });
 
     blockLookup.push({
-        type: "action",
-        category: getCategory("CONVENIENCE"),
+        type: "value",
+        category: getCategory("ARRAYS"),
         internalName: "IndexOfArrayValue",
         displayName: BlocklyWrapper.getTranslation(
             "PYRITE_CONVENIENCE_INDEXOFARRAYVALUE",
@@ -1853,12 +1866,26 @@ function initializeBlocks(blockDefinitions: any): void {
     });
 
     blockLookup.push({
-        type: "action",
-        category: getCategory("CONVENIENCE"),
+        type: "value",
+        category: getCategory("ARRAYS"),
         internalName: "RemoveFromArray",
         displayName: BlocklyWrapper.getTranslation(
             "PYRITE_CONVENIENCE_REMOVEFROMARRAY",
         ),
+    });
+
+    blockLookup.push({
+        type: "value",
+        category: getCategory("SUBROUTINES"),
+        internalName: "subroutineArgumentBlock",
+        displayName: "GetSubroutineArgument"
+    });
+
+    blockLookup.push({
+        type: "action",
+        category: getCategory("CONVENIENCE"),
+        internalName: "actionComment",
+        displayName: "Comment"
     });
 
     //Blocks - Selection Lists
@@ -1873,11 +1900,19 @@ function initializeBlocks(blockDefinitions: any): void {
     ];
 
     //Blocks - Values (Yellow)
+    const ignoreValueBlocks = [
+        "GetArgument"
+    ];
+
     for (let index = 0; index < blockDefinitions.values.length; index++) {
         const element = blockDefinitions.values[index];
 
         //NOTE: Some values have no category...
         if (!element.category) {
+            if (ignoreValueBlocks.includes(element.name)) {
+                continue;
+            }
+
             if (element.name === "GetVariable") {
                 element.category = "VARIABLES";
             } else if (selectionLists.includes(element.name)) {

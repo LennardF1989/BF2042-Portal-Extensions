@@ -5,6 +5,10 @@ import Shared from "./Shared";
 declare global {
     const Blockly: unknown;
     const _Blockly: {
+        ContextMenu: {
+            // eslint-disable-next-line @typescript-eslint/ban-types
+            show: Function;
+        };
         // eslint-disable-next-line @typescript-eslint/ban-types
         inject: Function;
     };
